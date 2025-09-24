@@ -1,0 +1,25 @@
+#!/usr/bin/env php
+<?php
+
+declare(strict_types=1);
+
+use Glueful\Console\Application as GluefulConsole;
+use Symfony\Component\Console\Input\ArgvInput;
+use Symfony\Component\Console\Output\ConsoleOutput;
+
+// Bootstrap the application (loads env, builds container, boots framework)
+$app = require __DIR__ . '/bootstrap/app.php';
+
+// Get the DI container from the Application
+$container = $app->getContainer();
+
+// Wire up Glueful’s Symfony Console application with DI
+$cli = new GluefulConsole($container);
+
+// Run CLI
+try {
+    exit($cli->run(new ArgvInput(), new ConsoleOutput()));
+  } catch (Exception $e) {
+    echo "Error: " . $e->getMessage() . "\n";
+    exit(1);
+}
