@@ -1,5 +1,5 @@
 {
-  "name": "glueful/api",
+  "name": "glueful/api-skeleton",
   "description": "Glueful API Application Skeleton — Create high-performance APIs",
   "type": "project",
   "keywords": ["api", "skeleton", "glueful", "rest", "php"],
