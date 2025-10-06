@@ -4,7 +4,9 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
-## [1.0.0] - 2025-10-06
+## [1.0.0] - 2025-10-06 — Altair
+
+Altair release — initial public API skeleton built on the Glueful framework, focused on fast startup, clarity, and a clean baseline for new services.
 
 ### Added
 - Initial public release of Glueful API Skeleton.
@@ -18,4 +20,3 @@ The format is based on Keep a Changelog, and this project adheres to Semantic Ve
 - Composer scripts for local workflow: `serve`, `migrate`, `key:generate`, `glueful install`, and PHP_CodeSniffer tooling.
 - Basic test scaffolding (`tests/TestCase.php`, `tests/Feature/WelcomeTest.php`).
 - MIT license.
-
