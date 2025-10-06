@@ -13,7 +13,7 @@
   ],
   "require": {
     "php": "^8.2",
-    "glueful/framework": "^1.2.0"
+    "glueful/framework": "^1.3.0"
   },
   "require-dev": {
     "phpunit/phpunit": "^10.5",
