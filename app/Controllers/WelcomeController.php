@@ -19,7 +19,7 @@ class WelcomeController extends BaseController
         ]);
     }
 
-    public function health(Request $request): Response
+    public function status(Request $request): Response
     {
         return $this->success([
             'status' => 'healthy',

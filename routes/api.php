@@ -2,12 +2,32 @@
 
 use Glueful\Routing\Router;
 use App\Controllers\WelcomeController;
+use Symfony\Component\HttpFoundation\Request;
 
 /** @var Router $router Router instance injected by RouteManifest::load() */
 
 //Routes
 /**
- * @route GET /
+ * @route GET /status
+ * @summary status (Lightweight)
+ * @description Lightweight status check for the application skeleton
+ * @tag status
+ * @response 200 application/json "Service is statusy" {
+ *   success:boolean="true",
+ *   message:string="Success message",
+ *   data:{
+ *     status:string="healthy",
+ *     timestamp:string="ISO 8601 timestamp"
+ *   }
+ * }
+ */
+$router->get('/status', function (Request $request) {
+    $controller = new WelcomeController();
+    return $controller->status($request);
+});
+
+/**
+ * @route GET /welcome
  * @summary Welcome Endpoint
  * @description Returns a welcome payload with version and timestamp
  * @tag Example
@@ -21,20 +41,4 @@ use App\Controllers\WelcomeController;
  *   }
  * }
  */
-$router->get('/', [WelcomeController::class, 'index']);
-
-/**
- * @route GET /health
- * @summary Health (Lightweight)
- * @description Lightweight health check for the application skeleton
- * @tag Health
- * @response 200 application/json "Service is healthy" {
- *   success:boolean="true",
- *   message:string="Success message",
- *   data:{
- *     status:string="healthy",
- *     timestamp:string="ISO 8601 timestamp"
- *   }
- * }
- */
-$router->get('/health', [WelcomeController::class, 'health']);
+$router->get('/welcome', [WelcomeController::class, 'index']);
