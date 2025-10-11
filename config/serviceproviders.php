@@ -25,7 +25,7 @@ return [
     |
     */
     'enabled' => [
-        // App\Providers\AppServiceProvider::class,
+        App\Providers\AppServiceProvider::class,
     ],
 
     /*
