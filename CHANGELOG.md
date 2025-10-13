@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.1.0] - 2025-10-13 — Orion Compatibility
+
+Compatibility release aligning the skeleton with Glueful Framework 1.5.0.
+
+### Changed
+- Bump framework dependency to `glueful/framework ^1.5.0`.
+  - Gains Notifications DI provider (shared ChannelManager + NotificationDispatcher).
+  - Safer email verification/password reset flows via DI‑first wiring in the framework.
+
+### Notes
+- No code changes required in the skeleton. After updating, run:
+
+```bash
+composer update glueful/framework
+```
+
+
 ## [1.0.1] - 2025-10-11 — Maintenance
 
 Small developer‑experience improvements and alignment with framework 1.4.2 install flow. No breaking changes.
