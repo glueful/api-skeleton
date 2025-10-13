@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.2.0] - 2025-10-13 — Sirius Alignment
+
+Compatibility release aligning the skeleton with Glueful Framework 1.6.0.
+
+### Changed
+- Bump framework dependency to `glueful/framework ^1.6.0`.
+  - Gains compiled DI artifacts (`services.json`) and faster container boot in production.
+  - `di:container:map` prefers compiled manifest in prod (no reflection).
+  - Conditional HTTP caching middleware (`conditional_cache`) + `Response::withLastModified(...)` helper.
+  - DSN utilities and `config:dsn:validate` CLI for Database/Redis URLs.
+
+### Notes
+- No code changes required in the skeleton. After updating, run:
+
+```bash
+composer update glueful/framework
+```
+
 ## [1.1.0] - 2025-10-13 — Orion Compatibility
 
 Compatibility release aligning the skeleton with Glueful Framework 1.5.0.
