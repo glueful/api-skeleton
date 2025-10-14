@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+# [1.2.1] - 2025-10-14 — Arcturus
+
+Compatibility release aligning the skeleton with Glueful Framework 1.6.1.
+
+### Changed
+- Bump framework dependency to `glueful/framework ^1.6.1`.
+  - Gains Auth/JWT: RS256 signing support via `JWTService::signRS256(array $claims, string $privateKey)`
+    for generating JWTs using an RSA private key. Requires the `openssl` extension.
+
+```bash
+composer update glueful/framework
+```
+
 ## [1.2.0] - 2025-10-13 — Sirius Alignment
 
 Compatibility release aligning the skeleton with Glueful Framework 1.6.0.
