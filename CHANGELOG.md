@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+# [1.3.0] - 2025-10-18 — Procyon Alignment
+
+Compatibility release aligning the skeleton with Glueful Framework 1.7.0.
+
+### Changed
+- Bump framework dependency to `glueful/framework ^1.7.0`.
+  - Gains fiber-based async scheduler (`FiberScheduler`) with `spawn`, `all`, `race`, `sleep`.
+  - Async HTTP client with pooling and streaming (`CurlMultiHttpClient`, `HttpStreamingClient`).
+  - Buffered async I/O streams, cooperative cancellation, metrics instrumentation.
+  - Promise-style wrapper for ergonomic chaining.
+
+### Notes
+- No code changes required in the skeleton. After updating, run:
+
+```bash
+composer update glueful/framework
+```
+
+To opt-in per route, add the `async` middleware in your route config, or use helpers like `async()`, `await_all()`.
+
 # [1.2.1] - 2025-10-14 — Arcturus
 
 Compatibility release aligning the skeleton with Glueful Framework 1.6.1.
