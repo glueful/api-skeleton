@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.3.1] - 2025-10-21 — Canopus Alignment
+
+Compatibility release aligning the skeleton with Glueful Framework 1.7.1.
+
+### Changed
+- Bump framework dependency to `glueful/framework ^1.7.1`.
+  - Picks up the extension discovery/boot fix (framework now calls `ExtensionManager::discover()` before `::boot()`), ensuring enabled extensions load and their migrations are discovered by CLI commands.
+
+### Notes
+- No code changes required in the skeleton. After updating, run:
+
+```bash
+composer update glueful/framework
+```
+
+If you use extensions, `extensions:list`/`extensions:why` and `migrate:status` will now accurately reflect enabled providers and their migrations after boot.
+
 # [1.3.0] - 2025-10-18 — Procyon Alignment
 
 Compatibility release aligning the skeleton with Glueful Framework 1.7.0.
