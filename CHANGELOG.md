@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.3.3] - 2025-10-21 — Pollux
+
+Compatibility release aligning the skeleton with Glueful Framework 1.7.3.
+
+### Changed
+- Bump framework dependency to `glueful/framework ^1.7.3`.
+  - Picks up QueryBuilder fix for 2‑argument `where($column, $value)` / `orWhere($column, $value)` normalization, improving portability across Postgres/MySQL/SQLite and avoiding TypeError in edge cases.
+  - Minor dev‑server log polish: built‑in PHP server access/startup lines no longer reported as errors in `php glueful serve`.
+
+### Notes
+- After updating, run:
+
+```bash
+composer update glueful/framework
+```
+
 ## [1.3.2] - 2025-10-21 — Castor
 
 Compatibility release aligning the skeleton with Glueful Framework 1.7.2 and improving Apache defaults.
