@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.3.2] - 2025-10-21 — Castor
+
+Compatibility release aligning the skeleton with Glueful Framework 1.7.2 and improving Apache defaults.
+
+### Changed
+- Bump framework dependency to `glueful/framework ^1.7.2`.
+  - Picks up extension route-loading resilience (`ServiceProvider::loadRoutesFrom()` idempotent + exception‑safe).
+  - Dev server logs are less noisy (PHP built‑in server access/startup lines no longer printed as errors).
+- Harden `public/.htaccess` for Apache deployments:
+  - Disable `MultiViews` and directory indexing.
+  - Preserve `Authorization` and `X-XSRF-Token` headers for PHP.
+  - Canonicalize trailing slashes when not a real directory.
+
+### Notes
+- For Nginx, apply equivalent rewrites and header forwarding in the server block.
+- After updating, run:
+
+```bash
+composer update glueful/framework
+```
+
 ## [1.3.1] - 2025-10-21 — Canopus Alignment
 
 Compatibility release aligning the skeleton with Glueful Framework 1.7.1.
