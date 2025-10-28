@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.3.4] - 2025-10-28 — Arcturus
+
+Compatibility release aligning the skeleton with Glueful Framework 1.7.4.
+
+### Changed
+- Bump framework dependency to `glueful/framework ^1.7.4`.
+  - Picks up a minimal, configurable account‑status gate in `AuthenticationService` and refresh‑token flow, governed by `security.auth.allowed_login_statuses` (default: `['active']`).
+  - Adds new migration examples for creating database views/functions in the framework docs.
+
+### Notes
+- After updating, run:
+
+```bash
+composer update glueful/framework
+```
+
+- If you previously used `auth.allowed_login_statuses`, move it to `security.auth.allowed_login_statuses` in your app config.
+
 ## [1.3.3] - 2025-10-21 — Pollux
 
 Compatibility release aligning the skeleton with Glueful Framework 1.7.3.
