@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.4.0] - 2025-11-13 — Spica
+
+Compatibility release aligning the skeleton with Glueful Framework 1.8.0.
+
+### Changed
+- Bump framework dependency to `glueful/framework ^1.8.0`.
+  - Picks up first-class session and login response events:
+    - `SessionCachedEvent` to enrich cached session payloads post-write
+    - `LoginResponseBuildingEvent`/`LoginResponseBuiltEvent` to shape pre-return login responses
+  - No behavior change unless you register listeners; events are synchronous.
+
+### Notes
+- After updating, run:
+
+```bash
+composer update glueful/framework
+```
+
+- Optional: add listeners in your app service provider to enrich response context (e.g., `context.organization`) or warm caches.
+
 ## [1.3.4] - 2025-10-28 — Arcturus
 
 Compatibility release aligning the skeleton with Glueful Framework 1.7.4.
