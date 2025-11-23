@@ -4,6 +4,24 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.4.1] - 2025-11-23 — Vega Alignment
+
+Compatibility release aligning the skeleton with Glueful Framework 1.8.1.
+
+### Changed
+- Bump framework dependency to `glueful/framework ^1.8.1`.
+  - Adds the `$requireLowercase` toggle to `Utils::validatePassword()` so apps can enforce mixed-case password policies declaratively.
+  - Improves `async_stream()` so buffered helpers can accept existing async streams or raw resources without static-analysis noise.
+
+### Notes
+- After updating, run:
+
+```bash
+composer update glueful/framework
+```
+
+No other changes are required; opt into the lowercase flag where appropriate in your auth flows.
+
 ## [1.4.0] - 2025-11-13 — Spica
 
 Compatibility release aligning the skeleton with Glueful Framework 1.8.0.
