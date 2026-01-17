@@ -4,6 +4,31 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.5.0] - 2026-01-17 — Betelgeuse Alignment
+
+Compatibility release aligning the skeleton with Glueful Framework 1.9.0.
+
+### Breaking Changes
+- **PHP 8.3 Required**: Minimum PHP version raised from 8.2 to 8.3, matching the framework requirement.
+
+### Changed
+- Bump PHP requirement to `^8.3`.
+- Bump framework dependency to `glueful/framework ^1.9.0`.
+  - Framework now requires PHP 8.3 minimum.
+  - Console `Application::addCommand(string)` renamed to `Application::registerCommandClass(string)` for Symfony Console 7.3 compatibility.
+  - Route double-loading prevention eliminates CLI warnings.
+  - PHPStan and PSR-4 test fixes.
+
+### Notes
+- Before updating, ensure your environment runs PHP 8.3 or higher.
+- After updating, run:
+
+```bash
+composer update
+```
+
+- If you extended the console Application and called `addCommand(MyCommand::class)`, update to `registerCommandClass(MyCommand::class)`.
+
 ## [1.4.1] - 2025-11-23 — Vega Alignment
 
 Compatibility release aligning the skeleton with Glueful Framework 1.8.1.
