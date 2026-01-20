@@ -4,6 +4,40 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.5.1] - 2026-01-19 — Castor Alignment
+
+Compatibility release aligning the skeleton with Glueful Framework 1.9.1.
+
+### Added
+- `config/documentation.php` - Centralized OpenAPI/Swagger documentation settings including:
+  - API info, servers, and security schemes
+  - Output paths for generated documentation
+  - UI configuration for Scalar, Swagger UI, and Redoc
+
+### Changed
+- Bump framework dependency to `glueful/framework ^1.9.1`.
+  - New `--ui` option for `generate:openapi` command supporting Scalar, Swagger UI, and Redoc
+  - Refactored documentation system with `OpenApiGenerator`, `TableDefinitionGenerator`, and `DocumentationUIGenerator`
+  - PHPDoc parsing now uses `phpDocumentor/ReflectionDocBlock` for robustness
+  - New `Numeric` and `Regex` validation rules
+  - Symfony packages updated to ^7.4
+- Updated `.gitignore` to exclude `bootstrap/cache/` directory.
+
+### Notes
+- After updating, run:
+
+```bash
+composer update glueful/framework
+```
+
+- To generate API documentation with interactive UI:
+
+```bash
+php glueful generate:openapi --ui
+php glueful generate:openapi --ui=swagger-ui
+php glueful generate:openapi --ui=redoc
+```
+
 ## [1.5.0] - 2026-01-17 — Betelgeuse Alignment
 
 Compatibility release aligning the skeleton with Glueful Framework 1.9.0.
