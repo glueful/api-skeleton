@@ -21,3 +21,4 @@
 # --- OS / Misc ---
 .DS_Store
 *.log
+bootstrap/cache/
