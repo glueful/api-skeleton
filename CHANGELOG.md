@@ -4,6 +4,34 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.5.2] - 2026-01-20 — Deneb Sync
+
+Compatibility release aligning the skeleton with Glueful Framework 1.9.2.
+
+### Changed
+- Bump framework dependency to `glueful/framework ^1.9.2`.
+  - OpenAPI 3.1.0 support with JSON Schema draft 2020-12 alignment
+  - New `ResourceRouteExpander` automatically expands `{resource}` routes to table-specific endpoints
+  - Output file renamed from `swagger.json` to `openapi.json`
+  - Scalar UI improvements with `hideClientButton` and `showDeveloperTools` options
+  - Tags sorted alphabetically in documentation sidebar
+  - Fixed `SchemaBuilder::getTableColumns()` returning empty arrays
+- Updated `config/documentation.php`:
+  - Config key `paths.swagger` renamed to `paths.openapi`
+  - Default OpenAPI version changed to 3.1.0
+  - Added `hide_client_button` and `show_developer_tools` Scalar options
+- Updated `config/app.php`:
+  - Fixed docs URL to use `/docs/` instead of `/api/v1/docs/`
+
+### Notes
+- After updating, run:
+
+```bash
+composer update glueful/framework
+```
+
+- If you have custom scripts referencing `swagger.json`, update the path to `openapi.json`.
+
 ## [1.5.1] - 2026-01-19 — Castor Alignment
 
 Compatibility release aligning the skeleton with Glueful Framework 1.9.1.
@@ -17,7 +45,7 @@ Compatibility release aligning the skeleton with Glueful Framework 1.9.1.
 ### Changed
 - Bump framework dependency to `glueful/framework ^1.9.1`.
   - New `--ui` option for `generate:openapi` command supporting Scalar, Swagger UI, and Redoc
-  - Refactored documentation system with `OpenApiGenerator`, `TableDefinitionGenerator`, and `DocumentationUIGenerator`
+  - Refactored documentation system with `OpenApiGenerator` and `DocumentationUIGenerator`
   - PHPDoc parsing now uses `phpDocumentor/ReflectionDocBlock` for robustness
   - New `Numeric` and `Regex` validation rules
   - Symfony packages updated to ^7.4
