@@ -4,6 +4,36 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.6.1] - 2026-01-22 — Configuration Simplification
+
+Patch release simplifying environment configuration by consolidating URL and version variables.
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.19.1`.
+- **Simplified URL Configuration**: All URLs now derive from single `BASE_URL`
+  - Removed `API_BASE_URL` from `.env.example`
+- **Simplified Version Configuration**: Consolidated to single `API_VERSION`
+  - Removed `API_VERSION_FULL` — docs version derived automatically
+  - Removed `API_DEFAULT_VERSION` — use `API_VERSION` instead
+  - Changed format from `API_VERSION=v1` to `API_VERSION=1` (integer)
+- Updated `config/app.php`, `config/api.php`, `config/documentation.php` to use simplified variables
+
+### Migration
+
+Update your `.env` file:
+
+```diff
+- BASE_URL=http://localhost:8000
+- API_BASE_URL=http://localhost:8000
+- API_VERSION=v1
+- API_VERSION_FULL=1.0.0
++ BASE_URL=http://localhost:8000
++ API_VERSION=1
+```
+
+---
+
 ## [1.6.0] - 2026-01-22 — API Essentials
 
 Major release aligning the skeleton with Glueful Framework 1.19.0, bringing support for all Priority 3 API-specific features: API Versioning, Enhanced Rate Limiting, Webhooks System, and Search & Filtering DSL. This release completes the foundational API tooling needed for production-grade REST APIs.
@@ -15,12 +45,6 @@ Major release aligning the skeleton with Glueful Framework 1.19.0, bringing supp
   - `rate_limiting` — Tiered rate limiting with multiple algorithms (sliding, fixed, token bucket)
   - `webhooks` — Webhook delivery configuration with HMAC signatures and retry logic
   - `filtering` — Search & Filtering DSL configuration with operator controls
-
-- **.env.example** — New environment variables for all features:
-  - API versioning: `API_DEFAULT_VERSION`, `API_VERSION_STRATEGY`, `API_VERSION_STRICT`
-  - Rate limiting: `API_RATE_LIMITING_ENABLED`, `API_RATE_LIMIT_ALGORITHM`, `API_RATE_LIMIT_DEFAULT_TIER`
-  - Webhooks: `WEBHOOKS_ENABLED`, `WEBHOOKS_QUEUE`, `WEBHOOKS_TIMEOUT`, `WEBHOOKS_MAX_ATTEMPTS`
-  - Search: `API_SEARCH_DRIVER`, `ELASTICSEARCH_HOST`, `MEILISEARCH_HOST`, `MEILISEARCH_KEY`
 
 ### Changed
 
