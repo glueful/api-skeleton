@@ -19,11 +19,9 @@ return [
 
     // API Information
     'name' => env('APP_NAME', 'Glueful'),
-    'version_full' => env('API_VERSION_FULL', '1.0.0'),
-
     'urls' => [
         'base' => env('BASE_URL', 'http://localhost'),
-        'docs' => rtrim(env('BASE_URL', 'http://localhost'), '/') . '/api/' . env('API_VERSION', 'v1') . '/docs/',
+        'docs' => rtrim(env('BASE_URL', 'http://localhost'), '/') . '/api/v' . env('API_VERSION', '1') . '/docs/',
     ]
 
 ];
