@@ -4,6 +4,129 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.6.0] - 2026-01-22 — API Essentials
+
+Major release aligning the skeleton with Glueful Framework 1.19.0, bringing support for all Priority 3 API-specific features: API Versioning, Enhanced Rate Limiting, Webhooks System, and Search & Filtering DSL. This release completes the foundational API tooling needed for production-grade REST APIs.
+
+### Added
+
+- **config/api.php** — Comprehensive API configuration with four new sections:
+  - `versioning` — API versioning with multiple strategies (URL prefix, header, query, Accept header)
+  - `rate_limiting` — Tiered rate limiting with multiple algorithms (sliding, fixed, token bucket)
+  - `webhooks` — Webhook delivery configuration with HMAC signatures and retry logic
+  - `filtering` — Search & Filtering DSL configuration with operator controls
+
+- **.env.example** — New environment variables for all features:
+  - API versioning: `API_DEFAULT_VERSION`, `API_VERSION_STRATEGY`, `API_VERSION_STRICT`
+  - Rate limiting: `API_RATE_LIMITING_ENABLED`, `API_RATE_LIMIT_ALGORITHM`, `API_RATE_LIMIT_DEFAULT_TIER`
+  - Webhooks: `WEBHOOKS_ENABLED`, `WEBHOOKS_QUEUE`, `WEBHOOKS_TIMEOUT`, `WEBHOOKS_MAX_ATTEMPTS`
+  - Search: `API_SEARCH_DRIVER`, `ELASTICSEARCH_HOST`, `MEILISEARCH_HOST`, `MEILISEARCH_KEY`
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.19.0`.
+
+### Framework Features Now Available
+
+This release enables access to all features from Glueful Framework 1.10.0 through 1.19.0:
+
+#### v1.19.0 — Search & Filtering DSL (Canopus)
+- **QueryFilter classes** for reusable filtering logic
+- **14 filter operators**: eq, ne, gt, gte, lt, lte, contains, starts, ends, in, nin, between, null, not_null
+- **Sorting**: Multi-column with direction (`sort=-created_at,name`)
+- **Full-text search** with database LIKE or search engine integration
+- **Search engine adapters**: DatabaseAdapter, ElasticsearchAdapter, MeilisearchAdapter
+- **Searchable trait** for ORM models
+- **scaffold:filter command** for generating filter classes
+
+#### v1.18.0 — Webhooks System (Hadar)
+- **Event-based subscriptions** with wildcard matching (`user.*`, `*`)
+- **HMAC-SHA256 signatures** (Stripe-style format)
+- **Reliable delivery** with exponential backoff retry (1m, 5m, 30m, 2h, 12h)
+- **WebhookSubscription and WebhookDelivery** ORM models
+- **REST API** for subscription management
+- **CLI commands**: `webhook:list`, `webhook:test`, `webhook:retry`
+- **Auto-migration** for database tables
+
+#### v1.17.0 — Enhanced Rate Limiting (Alnitak)
+- **Tiered rate limiting** (anonymous, free, pro, enterprise)
+- **Multiple algorithms**: sliding window, fixed window, token bucket
+- **Cost-based limiting** via `#[RateLimitCost]` attribute
+- **IETF-compliant headers** (RateLimit-Limit, RateLimit-Remaining, RateLimit-Reset)
+- **Route-level configuration** via `#[RateLimit]` attribute
+
+#### v1.16.0 — API Versioning (Meissa)
+- **Multiple strategies**: URL prefix (`/api/v1`), header, query param, Accept header
+- **Deprecation system** with Sunset headers (RFC 8594)
+- **Version negotiation** middleware
+- **Route attributes**: `#[Version]`, `#[Deprecated]`, `#[Sunset]`
+
+#### v1.15.0 — Real-Time Dev Server (Rigel)
+- **File watching** with automatic reload
+- **WebSocket support** for hot reloading
+- **Enhanced serve command** with livereload
+
+#### v1.14.0 — Interactive CLI Wizards (Bellatrix)
+- **Interactive prompts** for scaffold commands
+- **Model relationship detection**
+- **Migration generation wizards**
+
+#### v1.13.0 — Enhanced Scaffolding (Saiph)
+- **scaffold:model** with fillable, migration, factory options
+- **scaffold:controller** with resource actions
+- **scaffold:job** with queue configuration
+- **scaffold:rule** for validation rules
+- **scaffold:test** for unit and feature tests
+- **Database factories and seeders**
+
+#### v1.12.0 — API Resource Transformers (Mintaka)
+- **JsonResource and ModelResource** for JSON transformation
+- **ResourceCollection** with pagination support
+- **Conditional attributes**: `when()`, `whenLoaded()`, `mergeWhen()`
+
+#### v1.11.0 — ORM / Active Record (Alnilam)
+- **Model base class** with active record pattern
+- **Relationships**: hasOne, hasMany, belongsTo, belongsToMany
+- **Query scopes** and soft deletes
+- **Attribute casting** and accessors/mutators
+
+#### v1.10.0 — Exception Handler & Validation (Elnath)
+- **Global exception handler** with JSON error responses
+- **Request validation** with declarative rules
+- **FormRequest classes** for complex validation
+
+### Notes
+
+After updating, run:
+
+```bash
+composer update glueful/framework
+```
+
+**New CLI commands available:**
+```bash
+# Webhooks
+php glueful webhook:list
+php glueful webhook:test https://example.com/webhook
+php glueful webhook:retry --failed
+
+# Scaffolding
+php glueful scaffold:filter UserFilter --model=User
+php glueful scaffold:model Post --fillable=title,body --migration
+php glueful scaffold:resource UserResource --model
+```
+
+**Optional search engine packages:**
+```bash
+# For Elasticsearch support
+composer require elasticsearch/elasticsearch:^8.0
+
+# For Meilisearch support
+composer require meilisearch/meilisearch-php:^1.0
+```
+
+---
+
 ## [1.5.2] - 2026-01-20 — Deneb Sync
 
 Compatibility release aligning the skeleton with Glueful Framework 1.9.2.
