@@ -44,6 +44,14 @@ return [
     | Metadata about your API that appears in the generated documentation.
     | These values populate the "info" section of the OpenAPI spec.
     |
+    | TIP: After adding or modifying endpoints in your code, regenerate docs:
+    |   php glueful generate:openapi -f -u
+    |
+    | If changes don't appear, try:
+    |   1. Hard refresh the browser (Cmd+Shift+R / Ctrl+Shift+R)
+    |   2. Clear browser cache
+    |   3. Run with --clean flag: php glueful generate:openapi -f -u --clean
+    |
     */
     'info' => [
         'title' => env('API_TITLE', env('APP_NAME', 'API Documentation')),
@@ -73,7 +81,8 @@ return [
     */
     'servers' => [
         [
-            'url' => env('API_SERVER_URL', env('APP_URL', 'http://localhost') . '/api'),
+            // Use base URL - route paths include their own prefixes
+            'url' => env('API_SERVER_URL', config('app.urls.base', env('APP_URL', 'http://localhost'))),
             'description' => env('API_SERVER_DESCRIPTION', 'API Server'),
         ],
     ],
@@ -119,6 +128,30 @@ return [
 
         // Framework routes directory (auto-detected from vendor or local path)
         'framework_routes' => null, // Will be resolved at runtime
+
+        /*
+        |--------------------------------------------------------------------------
+        | Route File Prefixes
+        |--------------------------------------------------------------------------
+        |
+        | Map route files to their URL path prefixes. Routes in these files will
+        | have the prefix prepended to their documented paths.
+        |
+        | Format: 'filename.php' => '/prefix' or '' for no prefix
+        |
+        */
+        'route_prefixes' => [
+            // App routes - versioned API
+            'api.php' => '/v1',
+
+            // Framework routes - no version prefix
+            'health.php' => '',
+            'docs.php' => '',
+
+            // Framework auth routes - versioned
+            'auth.php' => '/v1',
+            'resource.php' => '/v1',
+        ],
     ],
 
     /*
@@ -156,6 +189,10 @@ return [
 
         // Pretty print JSON output
         'pretty_print' => true,
+
+        // Generate resource/table routes (CRUD endpoints for all database tables)
+        // Set to false to disable automatic generation of table-based API endpoints
+        'include_resource_routes' => env('API_DOCS_INCLUDE_RESOURCE_ROUTES', false),
     ],
 
     /*
@@ -168,6 +205,7 @@ return [
     |
     */
     'excluded_tables' => [
+        // System tables
         'migrations',
         'failed_jobs',
         'password_resets',
@@ -177,6 +215,10 @@ return [
         'cache',
         'cache_locks',
         'sessions',
+        // Tables with explicit routes in api.php (avoid duplicate docs)
+        'notifications',
+        'notification_preferences',
+        'notification_templates',
     ],
 
     /*
@@ -207,6 +249,7 @@ return [
             'hide_models' => false,
             'default_open_all_tags' => false,
             'show_developer_tools' => 'never',
+            'hide_powered_badge' => true,
         ],
 
         // Swagger UI-specific settings
