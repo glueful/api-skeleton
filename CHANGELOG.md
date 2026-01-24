@@ -4,6 +4,104 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.7.0] - 2026-01-24 — Flexible Infrastructure
+
+Major release aligning the skeleton with Glueful Framework 1.21.0, introducing flexible URL routing patterns, comprehensive filesystem configuration, log retention settings, and enhanced application configuration with memory monitoring.
+
+### Added
+
+- **config/filesystem.php** — New comprehensive filesystem configuration:
+  - Symfony Filesystem and Finder component settings
+  - FileManager configuration (permissions, logging, path constraints)
+  - FileFinder settings (depth, VCS ignore, symlink handling)
+  - Security settings (path validation, upload scanning, path traversal prevention)
+  - File uploader configuration (MIME types, thumbnail generation)
+  - Extension discovery and route loading settings
+  - Migration discovery and cache management
+
+- **config/logging.php** — Log retention settings:
+  - Per-channel retention configuration with environment variable support
+  - Default: 90 days, debug: 7 days, API: 30 days
+  - Long retention for compliance: auth/security/error: 365 days
+
+- **config/app.php** — Enhanced application configuration:
+  - `dev_mode` — Smart environment-aware development mode
+  - `force_https` — Smart environment-aware HTTPS enforcement
+  - `key` — Application encryption key reference
+  - `versioning` — API versioning configuration block
+  - `paths` — Comprehensive application paths (uploads, logs, cache, backups, migrations, etc.)
+  - `performance.memory` — Memory monitoring with alerts, limits, and GC settings
+
+- **config/api.php** — Flexible URL routing:
+  - `apply_prefix_to_routes` — Toggle API prefix for subdomain deployments
+  - `version_in_path` — Toggle version number in URL paths
+
+- **config/documentation.php** — Documentation improvements:
+  - Route file prefixes configuration for accurate path generation
+  - `include_resource_routes` option to control CRUD endpoint generation
+  - Additional excluded tables (notifications, notification_preferences, notification_templates)
+  - `hide_powered_badge` Scalar UI option
+  - Regeneration tips in comments
+
+- **.env.example** — URL pattern documentation:
+  - Pattern A: Dedicated subdomain (`api.example.com/v1/...`)
+  - Pattern B: Path prefix (`example.com/api/v1/...`)
+  - Pattern C: No versioning (`api.example.com/...`)
+  - New variables: `API_USE_PREFIX`, `API_VERSION_IN_PATH`
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.21.0`
+- Default queue connection changed from `sync` to `database`
+- Documentation server URL simplified to use base URL directly
+- **config/security.php** — Cleaned up and simplified:
+  - Improved `health_ip_allowlist` handling (filters empty strings)
+  - Removed legacy settings now handled by framework or config/api.php
+
+### Removed
+
+- **database/migrations/008_CreateAuditLogsTable.php** — Now handled by framework
+- Legacy `rate_limiter` section from security.php (use config/api.php instead)
+- Legacy `audit` section from security.php
+- Legacy `enabled_permissions` setting
+- Redundant rate limiting env variables from .env.example
+
+### Framework Features Now Available
+
+This release enables access to features from Glueful Framework 1.20.0 and 1.21.0:
+
+#### v1.21.0 — File Uploader Refactoring
+- **ThumbnailGenerator** — Dedicated thumbnail creation with Intervention Image
+- **MediaMetadataExtractor** — Pure PHP metadata extraction using getID3
+- **MediaMetadata** — Readonly value object for type-safe media metadata
+- **FileUploader refactoring** — Cleaner separation of concerns
+- Removed ffprobe dependency — No external binaries required
+
+#### v1.20.0 — Filesystem Infrastructure
+- **FileManager** — Symfony Filesystem wrapper with security checks
+- **FileFinder** — Symfony Finder wrapper for file discovery
+- Atomic file operations and path validation
+- Extension and migration discovery improvements
+
+### Migration
+
+Update your `.env` file to use the new URL pattern variables:
+
+```diff
++ # Choose your URL pattern
++ API_USE_PREFIX=true
++ API_PREFIX=/api
++ API_VERSION_IN_PATH=true
+```
+
+After updating, run:
+
+```bash
+composer update glueful/framework
+```
+
+---
+
 ## [1.6.1] - 2026-01-22 — Configuration Simplification
 
 Patch release simplifying environment configuration by consolidating URL and version variables.
