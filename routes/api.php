@@ -2,28 +2,38 @@
 
 use Glueful\Routing\Router;
 use App\Controllers\WelcomeController;
-use Symfony\Component\HttpFoundation\Request;
 
-/** @var Router $router Router instance injected by RouteManifest::load() */
-
-//Routes
 /**
- * @route GET /status
- * @summary status (Lightweight)
- * @description Lightweight status check for the application skeleton
- * @tag status
- * @response 200 application/json "Service is statusy" {
- *   success:boolean="true",
- *   message:string="Success message",
- *   data:{
- *     status:string="healthy",
- *     timestamp:string="ISO 8601 timestamp"
- *   }
- * }
+ * Application API Routes
+ *
+ * @var Router $router Router instance injected by RouteManifest::load()
+ *
+ * Route Prefix Options:
+ *   - 'v1'                    → /v1/welcome (simple versioning)
+ *   - '/api/v1'               → /api/v1/welcome (with api prefix)
+ *   - api_prefix($context)    → uses config/api.php versioning settings
+ *   - (no group)              → /welcome (no prefix)
  */
-$router->get('/status', [WelcomeController::class, 'status']);
 
-/**
+$router->group(['prefix' => 'v1'], function (Router $router) {
+    /**
+     * @route GET /status
+     * @summary Status (Lightweight)
+     * @description Lightweight status check for the application skeleton
+     * @tag Status
+     * @response 200 application/json "Service status" {
+     *   success:boolean="true",
+     *   message:string="Success message",
+     *   data:{
+     *     status:string="healthy",
+     *     timestamp:string="ISO 8601 timestamp"
+     *   }
+     * }
+     */
+    $router->get('/status', [WelcomeController::class, 'status']);
+});
+
+ /**
  * @route GET /welcome
  * @summary Welcome Endpoint
  * @description Returns a welcome payload with version and timestamp
