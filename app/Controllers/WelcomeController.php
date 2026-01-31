@@ -14,7 +14,7 @@ class WelcomeController extends BaseController
     {
         return $this->success([
             'message' => 'Welcome to your Glueful API!',
-            'version' => config('app.version', '1.0.0'),
+            'version' => config($this->getContext(), 'app.version', '1.0.0'),
             'timestamp' => date('c'),
         ]);
     }

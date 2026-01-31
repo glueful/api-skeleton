@@ -4,6 +4,75 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.8.0] - 2026-01-31 — Context Revolution
+
+Major release aligning the skeleton with Glueful Framework 1.22.0, introducing ApplicationContext dependency injection, console command auto-discovery, and updated configuration patterns.
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.22.0`
+- **config/app.php** — Updated to use `$basePath = dirname(__DIR__)` pattern instead of helper functions
+- **config/documentation.php** — Updated to use `$root = dirname(__DIR__)` pattern
+- **config/image.php** — Updated to use `$root` variable for all path configurations
+- **config/logging.php** — Updated to use `$root` variable for path configurations
+- **config/security.php** — Enhanced configuration:
+  - Added `tokens.allow_query_param` option for legacy token support
+  - Added `csrf.allow_missing_origin` option for non-browser clients
+  - Added `csrf.skip_for_bearer_auth` option for API authentication
+- **config/schedule.php** — Updated scheduled job configuration:
+  - Handler classes updated to `Glueful\Queue\Jobs\*Job` namespace format
+  - Replaced `persistence` property with `queue` property
+  - Added `default_queue`, `queue_connection`, `use_queue_for_all_jobs` settings
+  - Added `queue_mapping` section for queue-based job organization
+
+### Framework Features Now Available
+
+This release enables access to features from Glueful Framework 1.22.0:
+
+#### ApplicationContext Dependency Injection
+- **Explicit context parameter**: Helper functions now require `ApplicationContext` as first parameter
+  - `config($context, $key, $default)` - Get configuration values
+  - `app($context, $id)` - Resolve services from container
+  - `base_path($context, $path)` - Get base path
+  - `storage_path($context, $path)` - Get storage path
+- **Improved testability**: No more global state, enabling proper unit testing
+- **Multi-app support**: Multiple application instances can coexist
+
+#### Console Command Auto-Discovery
+- **Automatic registration**: Commands auto-discovered from `src/Console/Commands/`
+- **Production caching**: Cached manifest for fast startup
+- **New CLI command**: `php glueful commands:cache` for cache management
+  - `--clear` to clear cache
+  - `--status` to show cache info
+
+#### PHP 8.3 Compatibility
+- **QueueContextHolder**: New class replacing deprecated static trait properties
+- Fixed static trait method/property deprecation warnings
+
+### Migration
+
+Update your application code to pass `ApplicationContext` to helper functions:
+
+```php
+// Before (no longer works)
+$value = config('app.debug');
+
+// After
+$value = config($context, 'app.debug');
+
+// Or if you have access to the container
+$context = $container->get(ApplicationContext::class);
+$value = config($context, 'app.debug');
+```
+
+After updating, run:
+
+```bash
+composer update glueful/framework
+```
+
+---
+
 ## [1.7.0] - 2026-01-24 — Flexible Infrastructure
 
 Major release aligning the skeleton with Glueful Framework 1.21.0, introducing flexible URL routing patterns, comprehensive filesystem configuration, log retention settings, and enhanced application configuration with memory monitoring.
