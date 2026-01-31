@@ -4,6 +4,37 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.10.0] - 2026-01-31 — Extension Reliability
+
+Release aligning the skeleton with Glueful Framework 1.26.0, improving extension discovery reliability for CLI tools and documentation generation.
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.26.0`
+
+### Framework Features Now Available
+
+This release enables access to fixes from Glueful Framework 1.26.0:
+
+#### Extension Discovery Fixes (Atria)
+- **Fallback discovery**: `PackageManifest` now falls back to `installed.json` when `installed.php` lacks provider metadata
+- **Lazy auto-discovery**: CLI commands that create their own container automatically discover extensions
+- **Discovery efficiency**: Added `$discovered` flag to ensure discovery runs exactly once
+
+These fixes resolve edge cases where extension documentation wasn't being generated due to empty provider lists.
+
+### Notes
+
+After updating, run:
+
+```bash
+composer update glueful/framework
+```
+
+No migration required.
+
+---
+
 ## [1.9.0] - 2026-01-31 — Route Domains
 
 Release aligning the skeleton with Glueful Framework 1.25.0, enabling multi-file route organization for domain-driven development.
