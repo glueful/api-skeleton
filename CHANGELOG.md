@@ -4,6 +4,58 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.9.0] - 2026-01-31 — Route Domains
+
+Release aligning the skeleton with Glueful Framework 1.25.0, enabling multi-file route organization for domain-driven development.
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.25.0`
+
+### Framework Features Now Available
+
+This release enables access to features from Glueful Framework 1.25.0:
+
+#### Multi-File Route Discovery (Ankaa)
+- **Automatic route discovery**: All `*.php` files in `routes/` are auto-discovered and loaded
+- **Alphabetical loading**: Route files load in sorted order for deterministic behavior
+- **Exclusion patterns**: Files starting with underscore (`_helpers.php`, `_shared.php`) excluded as partials
+- **Double-load prevention**: Framework tracks loaded files to avoid duplicate registration
+
+#### Domain-Driven Route Organization
+Split large route files into domain-specific files:
+
+```
+routes/
+├── api.php           # Main/shared routes
+├── identity.php      # Auth, profile, preferences
+├── social.php        # Follow, block
+├── engagement.php    # Reactions, comments
+└── _helpers.php      # Shared helpers (excluded)
+```
+
+Each file receives `$router` and `$context` in scope:
+
+```php
+// routes/identity.php
+$router->group(['prefix' => api_prefix($context)], function (Router $router) {
+    $router->post('/auth/login', [AuthController::class, 'login']);
+    $router->get('/profile', [ProfileController::class, 'show']);
+});
+```
+
+### Notes
+
+After updating, run:
+
+```bash
+composer update glueful/framework
+```
+
+No migration required - single `routes/api.php` files continue to work as before.
+
+---
+
 ## [1.8.0] - 2026-01-31 — Context Revolution
 
 Major release aligning the skeleton with Glueful Framework 1.22.0, introducing ApplicationContext dependency injection, console command auto-discovery, and updated configuration patterns.

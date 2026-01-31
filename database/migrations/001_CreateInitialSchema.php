@@ -80,6 +80,7 @@ class CreateInitialSchema implements MigrationInterface
             $table->bigInteger('size');
             $table->string('url', 2048);
             $table->string('storage_type', 20)->default('local');
+            $table->string('visibility', 10)->default('private'); // public or private
             $table->string('status', 20)->default('active');
             $table->string('created_by', 12);
             $table->timestamp('created_at')->default('CURRENT_TIMESTAMP');
@@ -89,6 +90,7 @@ class CreateInitialSchema implements MigrationInterface
             // Add indexes
             $table->unique('uuid');
             $table->index('created_by');
+            $table->index('visibility');
 
             // Add foreign key
             $table->foreign('created_by')
