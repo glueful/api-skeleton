@@ -21,10 +21,7 @@ use Symfony\Component\HttpFoundation\Request;
  *   }
  * }
  */
-$router->get('/status', function (Request $request) {
-    $controller = new WelcomeController();
-    return $controller->status($request);
-});
+$router->get('/status', [WelcomeController::class, 'status']);
 
 /**
  * @route GET /welcome
