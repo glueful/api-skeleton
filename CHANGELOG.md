@@ -4,6 +4,105 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.11.0] - 2026-02-05 — Route Caching
+
+Release aligning the skeleton with Glueful Framework 1.28.0 (Bellatrix), enabling route caching support.
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.28.0`
+
+### Framework Features Now Available
+
+This release enables access to features from Glueful Framework 1.28.0:
+
+#### Route Caching Support (Bellatrix)
+- **Cacheable routes**: Framework routes now use `[Controller::class, 'method']` syntax for cache compatibility
+- **ResourceController refactoring**: Methods renamed to RESTful conventions (`index`, `show`, `store`, `update`, `destroy`)
+- **Request-based parameters**: Controller methods accept `Request` directly instead of array parameters
+- **Closure detection**: RouteCompiler validates handlers and warns about non-cacheable closures
+- **Auto-invalidation**: RouteCache detects closures and invalidates cache automatically
+
+#### Migration Considerations
+If you extended `ResourceController` and overrode methods, update to new signatures:
+
+```php
+// Before
+public function get(array $params, array $queryParams)
+
+// After
+public function index(Request $request): Response
+{
+    $table = $request->attributes->get('table', '');
+    $queryParams = $request->query->all();
+}
+```
+
+### Notes
+
+After updating, run:
+
+```bash
+composer update glueful/framework
+```
+
+Use `./glueful route:debug` to identify any routes still using closure syntax.
+
+---
+
+## [1.10.1] - 2026-02-04 — Developer Experience
+
+Release aligning the skeleton with Glueful Framework 1.27.0 (Avior), introducing new CLI commands, transaction callbacks, and route cache improvements.
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.27.0`
+
+### Framework Features Now Available
+
+This release enables access to features from Glueful Framework 1.27.0:
+
+#### New CLI Commands (Avior)
+- **`doctor`** — Quick health checks for local development (env, cache, database, routes, storage)
+- **`env:sync`** — Sync `.env.example` from config `env()` usage with `--apply` option
+- **`route:debug`** — Dump resolved routes with `--method`, `--path`, `--name` filters
+- **`route:cache:clear`** / **`route:cache:status`** — Route cache management
+- **`cache:inspect`** — Inspect cache driver and PHP extension status
+- **`test:watch`** — Run tests on file changes with configurable polling
+- **`dev:server`** — Development server alias
+
+#### Database Transaction Callbacks
+- **`Connection::afterCommit(callable)`** — Execute callback after transaction commits
+- **`Connection::afterRollback(callable)`** — Execute callback after transaction rollback
+- Shared `TransactionManager` ensures consistent state across QueryBuilders
+- Use cases: search index updates, cache invalidation, event dispatching
+
+#### Route Cache Improvements
+- **Signature-based invalidation** replaces TTL-based caching
+- SHA-256 hash of route file paths, mtimes, and sizes
+- Cache invalidates automatically when any source file changes
+
+#### Extensions Enable/Disable Commands
+- Commands now edit `config/extensions.php` directly
+- New `--dry-run` and `--backup` options
+- DisableCommand comments out provider line instead of removing it
+
+### Notes
+
+After updating, run:
+
+```bash
+composer update glueful/framework
+```
+
+Try the new `doctor` command for quick health checks:
+
+```bash
+./glueful doctor
+```
+
+---
+
 ## [1.10.0] - 2026-01-31 — Extension Reliability
 
 Release aligning the skeleton with Glueful Framework 1.26.0, improving extension discovery reliability for CLI tools and documentation generation.
