@@ -4,6 +4,44 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.11.1] - 2026-02-06 — Router Stability
+
+Release aligning the skeleton with Glueful Framework 1.28.1 (Bellatrix patch), fixing route loading issues when using extensions with route caching.
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.28.1`
+
+### Framework Fixes Now Available
+
+This release includes stability fixes from Glueful Framework 1.28.1:
+
+#### Router Group Stack Fix
+- `Router::group()` now uses `try/finally` to always clean up route prefix stacks
+- Prevents cascading route prefix leakage when exceptions occur inside group callbacks
+- Eliminates incorrect path accumulation across extension route loading
+
+#### Cache-Aware Route Registration
+- Router allows extensions to overwrite routes pre-loaded from cache instead of throwing duplicate errors
+- Dynamic routes replace cached entries instead of appending duplicates
+- Ensures fresh extension route definitions always take priority
+
+### Notes
+
+After updating, run:
+
+```bash
+composer update glueful/framework
+```
+
+If you previously saw "Route already defined" errors in your error log with extensions enabled, this update resolves that issue. Consider clearing your route cache after updating:
+
+```bash
+./glueful route:cache:clear
+```
+
+---
+
 ## [1.11.0] - 2026-02-05 — Route Caching
 
 Release aligning the skeleton with Glueful Framework 1.28.0 (Bellatrix), enabling route caching support.
