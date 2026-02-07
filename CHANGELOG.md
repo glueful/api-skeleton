@@ -4,6 +4,43 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.11.2] - 2026-02-07 — Extension Migrations
+
+Release aligning the skeleton with Glueful Framework 1.28.2 (Bellatrix patch), fixing CLI migration discovery and PostgreSQL schema introspection.
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.28.2`
+
+### Framework Fixes Now Available
+
+This release includes fixes from Glueful Framework 1.28.2:
+
+#### Container Self-Registration
+- `ContainerFactory::create()` now registers the container under `ContainerInterface` for autowiring
+- CLI commands receive the fully-configured container instead of creating a fresh one
+
+#### Migration Command DI Wiring
+- `migrate:run`, `migrate:status`, `migrate:rollback` now properly discover extension migrations
+- Commands accept container/context via constructor DI, receiving migration paths registered by extensions
+
+#### PostgreSQL Schema-Safe Introspection
+- All `PostgreSQLSqlGenerator` introspection queries now use `current_schema()` instead of hardcoding `public`
+- Covers table/column existence checks, schema queries, `getTableColumns()` with PK/unique/index/FK lookups
+- Enables correct behavior in multi-tenant setups and non-`public` schema deployments
+
+### Notes
+
+After updating, run:
+
+```bash
+composer update glueful/framework
+```
+
+If your extensions register migrations via `loadMigrationsFrom()`, they will now appear in `migrate:status` and run with `migrate:run`.
+
+---
+
 ## [1.11.1] - 2026-02-06 — Router Stability
 
 Release aligning the skeleton with Glueful Framework 1.28.1 (Bellatrix patch), fixing route loading issues when using extensions with route caching.
