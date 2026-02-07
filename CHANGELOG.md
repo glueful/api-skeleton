@@ -4,6 +4,35 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.11.3] - 2026-02-07 — CLI Fix
+
+Release aligning the skeleton with Glueful Framework 1.28.3 (Bellatrix patch), fixing CLI option shortcut collision.
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.28.3`
+
+### Framework Fixes Now Available
+
+This release includes fixes from Glueful Framework 1.28.3:
+
+#### CLI `-q` Shortcut Collision
+- `queue:work`, `dev:server`, and `cache:maintenance` commands crashed with `LogicException: An option with shortcut "q" already exists`
+- Caused by `--queue` option using `-q` shortcut, which conflicts with Symfony Console's built-in `--quiet`
+- Fixed by removing the `-q` shortcut — use `--queue` instead
+
+### Notes
+
+After updating, run:
+
+```bash
+composer update glueful/framework
+```
+
+If your queue worker systemd service was crash-looping due to this error, it will now start correctly.
+
+---
+
 ## [1.11.2] - 2026-02-07 — Extension Migrations
 
 Release aligning the skeleton with Glueful Framework 1.28.2 (Bellatrix patch), fixing CLI migration discovery and PostgreSQL schema introspection.
