@@ -4,6 +4,43 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.12.0] - 2026-02-07 — Queue System Overhaul
+
+Release aligning the skeleton with Glueful Framework 1.29.0 (Capella), featuring queue system improvements.
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.29.0`
+- Queue config (`config/queue.php`) updated with seven env-driven queue presets and per-queue autoscale toggles
+- Schedule config (`config/schedule.php`) uses env-backed queue names instead of hardcoded strings
+- `.env.example` updated with queue process, autoscale, and per-queue env vars
+
+### Framework Features Now Available
+
+This release includes features from Glueful Framework 1.29.0:
+
+#### Leaf Worker Mode
+- New `queue:work process` action for direct in-process job execution
+- Spawned workers no longer recursively invoke the queue manager
+- Supports `--sleep`, `--max-jobs`, `--max-runtime`, `--stop-when-empty` and monitoring flags
+
+#### Queue System Fixes
+- ProcessManager config normalization and `stop()` API
+- Worker status display now includes runtime
+- Distributed lock is queue-scoped (not host-scoped) for correct multi-host coordination
+
+### Notes
+
+After updating, run:
+
+```bash
+composer update glueful/framework
+```
+
+Review your `.env` for new `QUEUE_*` and `SCHEDULE_QUEUE_*` variables.
+
+---
+
 ## [1.11.3] - 2026-02-07 — CLI Fix
 
 Release aligning the skeleton with Glueful Framework 1.28.3 (Bellatrix patch), fixing CLI option shortcut collision.
