@@ -4,6 +4,40 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.13.0] - 2026-02-09 — Exception Handler Consolidation
+
+Release aligning the skeleton with Glueful Framework 1.30.0 (Diphda), featuring unified exception handling.
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.30.0`
+
+### Framework Features Now Available
+
+This release includes features from Glueful Framework 1.30.0:
+
+#### Unified Exception Handling
+- Modern `Handler` is now the single source of truth for exception rendering, reporting, and event dispatch
+- Legacy `ExceptionHandler` reduced to a thin bootstrap shim (~250 lines) that delegates to the DI-managed Handler
+- Channel-based log routing: exceptions automatically routed to named channels (`auth`, `database`, `security`, `http`, etc.)
+- Optimized context building: lightweight context for high-frequency exceptions, full context for others
+
+#### Boot Wiring Improvements
+- Global error handlers registered earlier in the boot process (before Phase 1)
+- Handler wired into the global shim after container build via `ExceptionHandler::setHandler()`
+
+### Notes
+
+After updating, run:
+
+```bash
+composer update glueful/framework
+```
+
+No breaking changes. The `ExceptionHandler` static API (`logError`, `setTestMode`, `getTestResponse`) continues to work unchanged.
+
+---
+
 ## [1.12.0] - 2026-02-07 — Queue System Overhaul
 
 Release aligning the skeleton with Glueful Framework 1.29.0 (Capella), featuring queue system improvements.
