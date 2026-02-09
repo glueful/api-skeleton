@@ -4,6 +4,39 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.14.0] - 2026-02-09 — Context Propagation
+
+Release aligning the skeleton with Glueful Framework 1.31.0 (Enif), featuring centralized context propagation.
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.31.0`
+
+### Framework Features Now Available
+
+This release includes features from Glueful Framework 1.31.0:
+
+#### ORM Default Context
+- `Model::setDefaultContext()` enables static model calls like `User::find($id)` without passing `ApplicationContext` as the first argument
+- Framework sets the default context automatically during boot
+- Explicit context passing (`User::find($context, $id)`) continues to work and takes priority
+
+#### Centralized Context Propagation
+- Framework boot now sets `ApplicationContext` on core services: `Model`, `Utils`, `CacheHelper`, `SecureErrorResponse`, `RoutesManager`, `ImageProcessor`, `ConfigManager`, `Webhook`, `RequestUserContext`
+- Eliminates the need for scattered manual `setContext()` calls in application code
+
+### Notes
+
+After updating, run:
+
+```bash
+composer update glueful/framework
+```
+
+No breaking changes. Default context is only available after `Framework::boot()` completes.
+
+---
+
 ## [1.13.1] - 2026-02-09 — Auth Provider Fix
 
 Patch release aligning with Glueful Framework 1.30.1.
