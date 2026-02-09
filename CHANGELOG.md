@@ -4,6 +4,30 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.13.1] - 2026-02-09 — Auth Provider Fix
+
+Patch release aligning with Glueful Framework 1.30.1.
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.30.1`
+
+### Framework Fixes Included
+
+- **JWTService context initialization**: `JWTService` context is now set before auth providers are initialized in `AuthBootstrap`, fixing potential null context errors during social and third-party auth provider registration
+
+### Notes
+
+After updating, run:
+
+```bash
+composer update glueful/framework
+```
+
+No breaking changes.
+
+---
+
 ## [1.13.0] - 2026-02-09 — Exception Handler Consolidation
 
 Release aligning the skeleton with Glueful Framework 1.30.0 (Diphda), featuring unified exception handling.
