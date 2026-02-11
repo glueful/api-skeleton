@@ -4,6 +4,50 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.15.0] - 2026-02-11 — Schema Builder Callback API
+
+Release aligning the skeleton with Glueful Framework 1.32.0 (Fomalhaut), featuring the `alterTable` callback API.
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.32.0`
+- **Users table schema**: Removed `user_agent`, `ip_address`, `x_forwarded_for_ip_address`, and `last_login_date` columns from the `users` table in `database/migrations/001_CreateInitialSchema.php`. These fields belong in `auth_sessions`, not the users table. Added `updated_at` timestamp.
+
+### Framework Features Now Available
+
+This release includes features from Glueful Framework 1.32.0:
+
+#### Dual-Mode `alterTable` API
+- `alterTable()` now accepts an optional callback parameter, mirroring the `createTable` dual-mode pattern
+- Without a callback: returns a fluent `TableBuilder` for chaining (existing behavior unchanged)
+- With a callback: passes the builder to the callback, auto-executes the ALTER statements, and returns `$this` for schema-level chaining
+
+```php
+// Fluent mode (unchanged)
+$schema->alterTable('users')->addColumn('avatar', 'string')->execute();
+
+// Callback mode (new)
+$schema->alterTable('users', function ($table) {
+    $table->string('avatar')->nullable();
+    $table->index('email');
+});
+```
+
+#### ColumnBuilder Finalization Safety
+- Callback path calls `gc_collect_cycles()` before executing, ensuring `ColumnBuilder` destructors register columns via `finalizeColumn()` before the ALTER SQL is generated
+
+### Notes
+
+After updating, run:
+
+```bash
+composer update glueful/framework
+```
+
+No breaking changes. All existing schema builder usage continues to work unchanged.
+
+---
+
 ## [1.14.0] - 2026-02-09 — Context Propagation
 
 Release aligning the skeleton with Glueful Framework 1.31.0 (Enif), featuring centralized context propagation.
