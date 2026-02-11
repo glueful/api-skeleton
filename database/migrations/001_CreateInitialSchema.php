@@ -56,12 +56,9 @@ class CreateInitialSchema implements MigrationInterface
             $table->string('email', 255);
             $table->string('password', 100)->nullable();
             $table->string('status', 20)->default('active');
-            $table->string('user_agent', 512)->nullable();
-            $table->string('ip_address', 40)->nullable();
-            $table->string('x_forwarded_for_ip_address', 40)->nullable();
-            $table->timestamp('last_login_date')->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->timestamp('created_at')->default('CURRENT_TIMESTAMP');
+            $table->timestamp('updated_at')->default('CURRENT_TIMESTAMP');
             $table->timestamp('deleted_at')->nullable();
 
             // Add indexes
@@ -114,7 +111,7 @@ class CreateInitialSchema implements MigrationInterface
 
             // Add indexes
             $table->unique('uuid');
-            $table->index('user_uuid');
+            $table->unique('user_uuid');
             $table->index('photo_uuid');
 
             // Add foreign keys
