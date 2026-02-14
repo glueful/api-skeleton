@@ -4,6 +4,48 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.17.0] - 2026-02-14 — Hardened Auth Pipeline
+
+Release aligning the skeleton with Glueful Framework 1.34.0 (Hamal), which hardens the authentication pipeline, DI wiring, and queue serialization.
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.34.0`
+
+### Framework Features Now Available
+
+This release includes features from Glueful Framework 1.34.0:
+
+#### Auth Middleware Exception Isolation
+- `AuthMiddleware::handle()` no longer swallows downstream controller/middleware exceptions as 401 "Authentication error occurred". The `$next($request)` call is now outside the auth try/catch block, so DI resolution errors, storage failures, and other non-auth exceptions propagate correctly to the framework exception handler.
+
+#### Dual-Stack Token Extraction
+- Both `AuthMiddleware` and `JwtAuthenticationProvider` now fall back to extracting the Bearer token from the Symfony `Request` object when PSR-7 `RequestContext`-based extraction returns null. Fixes authentication failures on Apache CGI/FastCGI configurations where multipart requests don't populate the PSR-7 Authorization header.
+
+#### Relaxed JWT Claim Requirements
+- `Utils::getUser()` now only requires the `uuid` claim (previously required `uuid`, `role`, and `info`). Missing `role` defaults to `null`, missing `info` defaults to `[]`. The method also checks request attributes set by auth middleware before attempting token extraction.
+
+#### Queue Serialization Safety
+- `DriverRegistry::getDriver()` cache key generation replaced `serialize($config)` with filtered `json_encode()`, preventing "Serialization of 'Closure' is not allowed" crashes when queue config contains connection factories.
+
+#### UploadController DI Registration
+- `StorageProvider` now registers `FileUploader` and `UploadController` as factory definitions with config-driven constructor parameters, fixing "Service not found" errors for blob uploads.
+
+#### Login Tracking Cleanup
+- `AuthenticationService` no longer attempts to UPDATE `ip_address`, `user_agent`, `x_forwarded_for_ip_address`, or `last_login_date` on the `users` table during login. This tracking data is stored in `auth_sessions`.
+
+### Notes
+
+After updating, run:
+
+```bash
+composer update glueful/framework
+```
+
+No breaking changes. Code relying on `Utils::getUser()` returning non-null `role` or `info` should use null-safe access (`$user['role'] ?? 'default'`).
+
+---
+
 ## [1.16.0] - 2026-02-14 — Container-Enforced Request Resolution
 
 Release aligning the skeleton with Glueful Framework 1.33.0 (Gacrux), which eliminates all `fromGlobals()` fallbacks from service code.
