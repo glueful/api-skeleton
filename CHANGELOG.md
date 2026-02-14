@@ -4,6 +4,39 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.19.0] - 2026-02-14 — Model Event Isolation
+
+Release aligning the skeleton with Glueful Framework 1.36.0 (Jabbah), which fixes cross-model event leaking and base64 upload file extensions.
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.36.0`
+
+### Framework Features Now Available
+
+This release includes features from Glueful Framework 1.36.0:
+
+#### Model Event Isolation
+- ORM model event callbacks are now scoped per class. Previously, a `creating` callback registered in one model (e.g., `EntityType`) would also fire when a different model (e.g., `Entity`) was created, causing `TypeError` exceptions. Each model now only fires its own registered listeners.
+
+#### Boot-safe Event Registration
+- `registerModelEvent()` no longer instantiates a model to validate event names, eliminating "No database connection available" errors when models boot without `ApplicationContext`.
+
+#### Base64 Upload File Extensions
+- Base64 uploads now produce files with the correct extension (e.g., `.png`, `.jpg`) derived from the MIME type, instead of always using `.bin`.
+
+### Notes
+
+After updating, run:
+
+```bash
+composer update glueful/framework
+```
+
+No breaking changes. Existing model event listeners continue to work — they're now correctly isolated to their own model class.
+
+---
+
 ## [1.18.0] - 2026-02-14 — Cloud Storage Compatibility
 
 Release aligning the skeleton with Glueful Framework 1.35.0 (Izar), which fixes S3/R2 upload failures and blob retrieval issues.
