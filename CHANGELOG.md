@@ -4,6 +4,48 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.16.0] - 2026-02-14 — Container-Enforced Request Resolution
+
+Release aligning the skeleton with Glueful Framework 1.33.0 (Gacrux), which eliminates all `fromGlobals()` fallbacks from service code.
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.33.0`
+
+### Framework Features Now Available
+
+This release includes features from Glueful Framework 1.33.0:
+
+#### Container-Enforced Request Resolution
+- All auth services (`TokenManager`, `JwtAuthenticationProvider`, `SessionStore`, `EmailVerification`, `AuthenticationService`) now resolve `RequestContext` from the DI container's shared singleton instead of calling `RequestContext::fromGlobals()` as a fallback
+- Utility services (`RequestHelper`, `Utils`, `Cors`, `SpaManager`, `UserRepository`, `SecurityManager`) similarly resolve `Request`/`RequestContext` from the container
+- `CoreProvider`'s `'request'` alias now delegates to `RequestProvider`'s shared factory instead of independently calling `createFromGlobals()`
+
+#### Memory Safety
+- Fixes unbounded memory growth on high-header requests where multiple independent `fromGlobals()` calls each reconstructed PSR-7 request objects from `$_SERVER` superglobals (crash at Nyholm `MessageTrait.php` with 512MB exhaustion)
+
+#### Long-Running Server Compatibility
+- Services no longer read stale `$_SERVER` globals — all request data comes from the container-managed singleton that is reset between requests via `Container::reset()`
+- Relevant for RoadRunner, Swoole, and FrankenPHP deployments (`APP_LONG_RUNNING=true`)
+
+#### Silent Fallback Removal
+- `SessionStoreResolver` and `TokenManager::getSessionStore()` no longer silently construct bare `SessionStore()` instances on container failure — errors surface immediately with clear `\RuntimeException` messages
+
+#### Interface Addition
+- `SessionStoreInterface::resetRequestCache()` added to the interface (previously only on the implementation)
+
+### Notes
+
+After updating, run:
+
+```bash
+composer update glueful/framework
+```
+
+No breaking changes. The skeleton already uses proper DI for all framework services — no direct instantiation patterns are affected.
+
+---
+
 ## [1.15.0] - 2026-02-11 — Schema Builder Callback API
 
 Release aligning the skeleton with Glueful Framework 1.32.0 (Fomalhaut), featuring the `alterTable` callback API.
