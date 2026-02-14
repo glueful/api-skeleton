@@ -4,6 +4,43 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.18.0] - 2026-02-14 — Cloud Storage Compatibility
+
+Release aligning the skeleton with Glueful Framework 1.35.0 (Izar), which fixes S3/R2 upload failures and blob retrieval issues.
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.35.0`
+- Default `uploads.path_prefix` changed from `'uploads'` to `''` in `config/uploads.php` to prevent double `uploads/uploads/` path when the storage disk root is already `storage/uploads/`
+
+### Framework Features Now Available
+
+This release includes features from Glueful Framework 1.35.0:
+
+#### Cloud Storage Direct Write
+- `FlysystemStorage::store()` now writes directly via `writeStream()` for cloud disks (S3, R2, GCS, Azure) instead of the atomic temp+move pattern. The move step's CopyObject operation fails on Cloudflare R2 and some S3-compatible stores. Local disks retain the atomic pattern for crash safety.
+
+#### Blob Retrieval Fix
+- `BlobRepository::findByUuidWithDeleteFilter()` no longer returns false 404s. The method incorrectly passed operator arrays (`['!=', 'deleted']`) to the query builder's array-format `where()`, which always uses `=`. Rewritten to use explicit three-parameter format.
+
+#### Storage Error Propagation
+- Upload errors now include the underlying exception message (`Storage write failed: <details>`) instead of a generic message, making S3/R2 configuration issues diagnosable from the API response.
+
+#### Base64 Upload File Extensions
+- Base64 uploads now produce files with the correct extension (e.g., `.png`, `.jpg`) derived from the MIME type, instead of always using `.bin`.
+
+### Notes
+
+After updating, run:
+
+```bash
+composer update glueful/framework
+```
+
+No breaking changes. S3/R2 uploads that previously returned 500 `io_move_failed` now succeed. Blobs that returned 404 despite existing in the database now resolve correctly.
+
+---
+
 ## [1.17.0] - 2026-02-14 — Hardened Auth Pipeline
 
 Release aligning the skeleton with Glueful Framework 1.34.0 (Hamal), which hardens the authentication pipeline, DI wiring, and queue serialization.
