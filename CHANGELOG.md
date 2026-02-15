@@ -4,6 +4,45 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.20.0] - 2026-02-15 — Deferred Extension Commands
+
+Release aligning the skeleton with Glueful Framework 1.37.0 (Kaus), which fixes extension CLI command registration, ORM Builder pagination, webhook DI wiring, and OpenAPI documentation generation.
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.37.0`
+
+### Framework Features Now Available
+
+This release includes features from Glueful Framework 1.37.0:
+
+#### Deferred Extension Commands
+- Extension CLI commands registered during `boot()` before the console application exists are now deferred and picked up automatically when the console app is created. Previously, these commands were silently dropped.
+
+#### ORM Builder Pagination Fix
+- `Builder::forPage()` now calls `limit()` before `offset()`, fixing "OFFSET requires LIMIT" errors from `QueryValidator` during ORM query pagination.
+
+#### ExtendsBuilder Interface
+- New `ExtendsBuilder` contract for scopes that add macros to the ORM Builder (e.g., `SoftDeletingScope`). Replaces duck-typed `method_exists()` checks with a proper interface.
+
+#### WebhookDispatcher DI Fix
+- The webhook dispatcher factory now correctly receives `ApplicationContext`, fixing "ApplicationContext is required for webhook dispatch" errors.
+
+#### OpenAPI Documentation Hardening
+- Documentation generation now works correctly in CLI mode with proper server URL fallback chain and valid JSON output for empty properties.
+
+### Notes
+
+After updating, run:
+
+```bash
+composer update glueful/framework
+```
+
+No breaking changes. Extension CLI commands that were previously lost now register correctly.
+
+---
+
 ## [1.19.0] - 2026-02-14 — Model Event Isolation
 
 Release aligning the skeleton with Glueful Framework 1.36.0 (Jabbah), which fixes cross-model event leaking and base64 upload file extensions.
@@ -21,9 +60,6 @@ This release includes features from Glueful Framework 1.36.0:
 
 #### Boot-safe Event Registration
 - `registerModelEvent()` no longer instantiates a model to validate event names, eliminating "No database connection available" errors when models boot without `ApplicationContext`.
-
-#### Base64 Upload File Extensions
-- Base64 uploads now produce files with the correct extension (e.g., `.png`, `.jpg`) derived from the MIME type, instead of always using `.bin`.
 
 ### Notes
 
