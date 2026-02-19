@@ -4,6 +4,50 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.21.0] - 2026-02-17 — Auth Token-Refresh Optimization
+
+Release aligning the skeleton with Glueful Framework 1.38.0 (Lesath), which optimizes auth token-refresh performance by eliminating redundant database lookups and adding request-level caching.
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.38.0`
+
+### Added
+
+- **`idx_auth_sessions_refresh_status` index**: B-tree composite index on `(refresh_token, status)` in `001_CreateInitialSchema` migration, aligned with the framework's optimized refresh-token lookup query pattern.
+- **`idx_auth_sessions_access_status` index**: B-tree composite index on `(access_token, status)` in `001_CreateInitialSchema` migration, aligned with the framework's access-token session lookup query pattern.
+
+### Framework Features Now Available
+
+This release includes features from Glueful Framework 1.38.0:
+
+#### Token-Refresh DB Lookup Reduction
+- `TokenManager` now fetches `provider` and `remember_me` in the initial session query, eliminating two subsequent `auth_sessions` lookups during token refresh. Per-refresh DB round-trips reduced from 3 to 1.
+
+#### AuthenticationService DI Cleanup
+- `refreshTokens()` resolves the session via `SessionStore::getByRefreshToken()` up front. Removed direct `new Connection()` instantiation in favour of the injected `UserRepository`, improving testability and DI consistency.
+
+#### Request-Level Refresh-Token Cache
+- `SessionStore::getByRefreshToken()` now caches results in `$requestCache`, matching the existing access-token pattern. Repeated lookups within the same request hit memory instead of the database.
+
+### Notes
+
+After updating, run:
+
+```bash
+composer update glueful/framework
+```
+
+No breaking changes. The `auth_sessions` indexes are added to the initial schema migration — existing databases should add them manually:
+
+```sql
+CREATE INDEX IF NOT EXISTS idx_auth_sessions_refresh_status ON auth_sessions (refresh_token, status);
+CREATE INDEX IF NOT EXISTS idx_auth_sessions_access_status ON auth_sessions (access_token, status);
+ANALYZE auth_sessions;
+```
+
+---
+
 ## [1.20.0] - 2026-02-15 — Deferred Extension Commands
 
 Release aligning the skeleton with Glueful Framework 1.37.0 (Kaus), which fixes extension CLI command registration, ORM Builder pagination, webhook DI wiring, and OpenAPI documentation generation.

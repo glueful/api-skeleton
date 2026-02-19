@@ -155,6 +155,17 @@ class CreateInitialSchema implements MigrationInterface
                 ->references('uuid')
                 ->on('users');
         });
+
+        // B-tree indexes for token lookups aligned with auth query patterns
+        $qb = $schema->getConnection()->query();
+        $qb->executeModification(
+            'CREATE INDEX IF NOT EXISTS idx_auth_sessions_refresh_status'
+            . ' ON auth_sessions (refresh_token, status);'
+        );
+        $qb->executeModification(
+            'CREATE INDEX IF NOT EXISTS idx_auth_sessions_access_status'
+            . ' ON auth_sessions (access_token, status);'
+        );
     }
 
     /**
