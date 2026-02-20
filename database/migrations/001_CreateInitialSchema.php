@@ -131,14 +131,12 @@ class CreateInitialSchema implements MigrationInterface
             $table->bigInteger('id')->unsigned()->primary()->autoIncrement();
             $table->string('uuid', 12);
             $table->string('user_uuid', 12);
-            $table->text('access_token');
-            $table->text('refresh_token')->nullable();
-            $table->text('token_fingerprint');
             $table->string('ip_address', 45)->nullable();
             $table->text('user_agent')->nullable();
-            $table->timestamp('last_token_refresh')->nullable();
-            $table->timestamp('access_expires_at');
-            $table->timestamp('refresh_expires_at');
+            $table->timestamp('last_seen_at')->nullable();
+            $table->timestamp('expires_at');
+            $table->timestamp('revoked_at')->nullable();
+            $table->integer('session_version')->default(1);
             $table->string('status', 20)->default('active');
             $table->timestamp('created_at')->default('CURRENT_TIMESTAMP');
             $table->timestamp('updated_at')->default('CURRENT_TIMESTAMP');
@@ -155,17 +153,6 @@ class CreateInitialSchema implements MigrationInterface
                 ->references('uuid')
                 ->on('users');
         });
-
-        // B-tree indexes for token lookups aligned with auth query patterns
-        $qb = $schema->getConnection()->query();
-        $qb->executeModification(
-            'CREATE INDEX IF NOT EXISTS idx_auth_sessions_refresh_status'
-            . ' ON auth_sessions (refresh_token, status);'
-        );
-        $qb->executeModification(
-            'CREATE INDEX IF NOT EXISTS idx_auth_sessions_access_status'
-            . ' ON auth_sessions (access_token, status);'
-        );
     }
 
     /**

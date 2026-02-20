@@ -4,6 +4,51 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.22.0] - 2026-02-20 — Token/Session Reimplementation
+
+Release aligning the skeleton with Glueful Framework 1.39.0 (Menkent), which replaces the legacy token/session model with a security-first architecture.
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.39.0`
+- **`001_CreateInitialSchema.php`**: `auth_sessions` table updated for new auth model — added `session_version`, `expires_at`, `last_seen_at`, `revoked_at`, `provider`, `remember_me`; removed legacy token columns (`access_token`, `refresh_token`, `access_expires_at`, `refresh_expires_at`, `token_fingerprint`, `last_token_refresh`) and their associated indexes.
+
+### Added
+
+- **`008_CreateAuthRefreshTokensTable.php`**: New migration creating the `auth_refresh_tokens` table for hash-only refresh token storage with one-time rotation, replay detection, and token family lineage (`parent_uuid`, `replaced_by_uuid`). Includes foreign keys to `auth_sessions` and `users`, unique index on `token_hash`, and a safety `ALTER TABLE` to add `session_version` to `auth_sessions` for upgrades from older schemas.
+
+### Framework Features Now Available
+
+This release includes features from Glueful Framework 1.39.0:
+
+#### Hash-Only Refresh Tokens
+- Refresh tokens are stored as SHA-256 hashes only — no raw tokens at rest. One-time-use rotation in a single `SELECT ... FOR UPDATE` transaction prevents race conditions.
+
+#### Session Versioning
+- Access JWTs carry `sid` (session UUID) and `ver` (session version) claims. Validation checks server-side session state, enabling instant invalidation via version bump without a token blocklist.
+
+#### Replay Detection
+- Presenting a consumed/revoked refresh token triggers session-scope revocation of all active tokens for that session.
+
+#### New Service Architecture
+- `RefreshService`, `AccessTokenIssuer`, `ProviderTokenIssuer`, `SessionRepository`, `RefreshTokenRepository`, `RefreshTokenStore`, `SessionStateCache`, and `AuthenticatedUser` value object.
+
+#### Session Cleanup Expansion
+- `SessionCleanupTask` now cleans both `auth_sessions` and `auth_refresh_tokens` with configurable retention windows.
+
+### Notes
+
+After updating, run:
+
+```bash
+composer update glueful/framework
+php glueful migrate:run
+```
+
+**Breaking change**: All existing sessions and tokens become invalid. Users must re-authenticate after deployment.
+
+---
+
 ## [1.21.0] - 2026-02-17 — Auth Token-Refresh Optimization
 
 Release aligning the skeleton with Glueful Framework 1.38.0 (Lesath), which optimizes auth token-refresh performance by eliminating redundant database lookups and adding request-level caching.
