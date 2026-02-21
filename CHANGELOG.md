@@ -4,6 +4,133 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.23.0] - 2026-02-21 — Notification Delivery Orchestration
+
+Release aligning the skeleton with Glueful Framework 1.40.0 (Alnair), which adds notification split delivery, per-channel delivery tracking, DB-indexed idempotency, and provisioning error semantics.
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.40.0`
+- **`004_CreateNotificationSystemTables.php`**: Added `notification_deliveries` table for per-channel delivery state tracking (`notification_uuid`, `channel`, `status`, `attempt_count`, `last_error`, `last_attempt_at`, `sent_at`) with unique key on `(notification_uuid, channel)`. Added `idempotency_key` column with index to `notifications` table.
+
+### Framework Features Now Available
+
+This release includes features from Glueful Framework 1.40.0:
+
+#### Split Delivery API
+- `NotificationService::sendSplit()` provides first-class sync/async channel separation. `send()` supports `sync_channels`, `async_channels`, `channel_failure_policy` (`any_success`, `require_critical`, `all`), and `critical_channels`.
+
+#### Per-Channel Delivery Tracking
+- New `notification_deliveries` table and repository APIs track delivery lifecycle per channel. Async retries target only failed channels — already-sent channels are skipped.
+
+#### DB-Indexed Idempotency
+- Dedicated `notifications.idempotency_key` column with index replaces the previous `_meta` JSON scan. Channel-level idempotency via unique key on `(notification_uuid, channel)`.
+
+#### Provisioning Exception
+- `ProvisioningException` for account setup failures maps to HTTP 500 and `api` log channel, replacing misleading 401 responses.
+
+### Notes
+
+After updating, run:
+
+```bash
+composer update glueful/framework
+php glueful migrate:run
+```
+
+Non-backward-compatible changes to notification sending flow and response structure.
+
+---
+
+## [1.22.0] - 2026-02-20 — Token/Session Reimplementation
+
+Release aligning the skeleton with Glueful Framework 1.39.0 (Menkent), which replaces the legacy token/session model with a security-first architecture.
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.39.0`
+- **`001_CreateInitialSchema.php`**: `auth_sessions` table updated for new auth model — added `session_version`, `expires_at`, `last_seen_at`, `revoked_at`, `provider`, `remember_me`; removed legacy token columns (`access_token`, `refresh_token`, `access_expires_at`, `refresh_expires_at`, `token_fingerprint`, `last_token_refresh`) and their associated indexes.
+
+### Added
+
+- **`008_CreateAuthRefreshTokensTable.php`**: New migration creating the `auth_refresh_tokens` table for hash-only refresh token storage with one-time rotation, replay detection, and token family lineage (`parent_uuid`, `replaced_by_uuid`). Includes foreign keys to `auth_sessions` and `users`, unique index on `token_hash`, and a safety `ALTER TABLE` to add `session_version` to `auth_sessions` for upgrades from older schemas.
+
+### Framework Features Now Available
+
+This release includes features from Glueful Framework 1.39.0:
+
+#### Hash-Only Refresh Tokens
+- Refresh tokens are stored as SHA-256 hashes only — no raw tokens at rest. One-time-use rotation in a single `SELECT ... FOR UPDATE` transaction prevents race conditions.
+
+#### Session Versioning
+- Access JWTs carry `sid` (session UUID) and `ver` (session version) claims. Validation checks server-side session state, enabling instant invalidation via version bump without a token blocklist.
+
+#### Replay Detection
+- Presenting a consumed/revoked refresh token triggers session-scope revocation of all active tokens for that session.
+
+#### New Service Architecture
+- `RefreshService`, `AccessTokenIssuer`, `ProviderTokenIssuer`, `SessionRepository`, `RefreshTokenRepository`, `RefreshTokenStore`, `SessionStateCache`, and `AuthenticatedUser` value object.
+
+#### Session Cleanup Expansion
+- `SessionCleanupTask` now cleans both `auth_sessions` and `auth_refresh_tokens` with configurable retention windows.
+
+### Notes
+
+After updating, run:
+
+```bash
+composer update glueful/framework
+php glueful migrate:run
+```
+
+**Breaking change**: All existing sessions and tokens become invalid. Users must re-authenticate after deployment.
+
+---
+
+## [1.21.0] - 2026-02-17 — Auth Token-Refresh Optimization
+
+Release aligning the skeleton with Glueful Framework 1.38.0 (Lesath), which optimizes auth token-refresh performance by eliminating redundant database lookups and adding request-level caching.
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.38.0`
+
+### Added
+
+- **`idx_auth_sessions_refresh_status` index**: B-tree composite index on `(refresh_token, status)` in `001_CreateInitialSchema` migration, aligned with the framework's optimized refresh-token lookup query pattern.
+- **`idx_auth_sessions_access_status` index**: B-tree composite index on `(access_token, status)` in `001_CreateInitialSchema` migration, aligned with the framework's access-token session lookup query pattern.
+
+### Framework Features Now Available
+
+This release includes features from Glueful Framework 1.38.0:
+
+#### Token-Refresh DB Lookup Reduction
+- `TokenManager` now fetches `provider` and `remember_me` in the initial session query, eliminating two subsequent `auth_sessions` lookups during token refresh. Per-refresh DB round-trips reduced from 3 to 1.
+
+#### AuthenticationService DI Cleanup
+- `refreshTokens()` resolves the session via `SessionStore::getByRefreshToken()` up front. Removed direct `new Connection()` instantiation in favour of the injected `UserRepository`, improving testability and DI consistency.
+
+#### Request-Level Refresh-Token Cache
+- `SessionStore::getByRefreshToken()` now caches results in `$requestCache`, matching the existing access-token pattern. Repeated lookups within the same request hit memory instead of the database.
+
+### Notes
+
+After updating, run:
+
+```bash
+composer update glueful/framework
+```
+
+No breaking changes. The `auth_sessions` indexes are added to the initial schema migration — existing databases should add them manually:
+
+```sql
+CREATE INDEX IF NOT EXISTS idx_auth_sessions_refresh_status ON auth_sessions (refresh_token, status);
+CREATE INDEX IF NOT EXISTS idx_auth_sessions_access_status ON auth_sessions (access_token, status);
+ANALYZE auth_sessions;
+```
+
+---
+
 ## [1.20.0] - 2026-02-15 — Deferred Extension Commands
 
 Release aligning the skeleton with Glueful Framework 1.37.0 (Kaus), which fixes extension CLI command registration, ORM Builder pagination, webhook DI wiring, and OpenAPI documentation generation.
