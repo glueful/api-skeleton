@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.23.4] - 2026-02-21 — WhereClause null fixes
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.40.4`
+
+### Framework Fixes Included
+
+- **PHPCS line length in `WhereClause`**: Code style fix only — extracted long error message string in `getConditionsArray()` to comply with 120-character line limit. No runtime behavior changes.
+
+### Notes
+
+Patch release. No breaking changes.
+
+```bash
+composer update glueful/framework
+```
+
+---
+
 ## [1.23.3] - 2026-02-21 — Mutation WHERE + Queue Config + Async Notification
 
 ### Changed
