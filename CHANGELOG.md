@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.23.2] - 2026-02-21 — Config Merge Safe Dedup
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.40.2`
+
+### Framework Fixes Included
+
+- **Config merge safe dedup for nested lists**: `mergeConfig()` list dedup replaced `array_unique()` with hash-based dedup using `json_encode`/`serialize` for complex items. Fixes 500 errors on event-driven flows (e.g., comment creation) that dispatch through queue/webhook listeners loading merged config with nested array items like `queue.monitoring.alert_rules`.
+
+### Notes
+
+Patch release. No breaking changes.
+
+```bash
+composer update glueful/framework
+```
+
+---
+
 ## [1.23.1] - 2026-02-21 — Config Merge Fix
 
 ### Changed
