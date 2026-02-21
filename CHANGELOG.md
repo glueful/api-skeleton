@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.23.1] - 2026-02-21 — Config Merge Fix
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.40.1`
+
+### Framework Fixes Included
+
+- **Config merge `array_unique()` on nested arrays**: `mergeConfig()` no longer applies `array_unique()` to nested associative arrays (e.g., `session.providers`), fixing "Array to string conversion" warnings. True lists are list-merged with dedup; associative arrays are deep-merged recursively.
+
+### Notes
+
+Patch release. No breaking changes.
+
+```bash
+composer update glueful/framework
+```
+
+---
+
 ## [1.23.0] - 2026-02-21 — Notification Delivery Orchestration
 
 Release aligning the skeleton with Glueful Framework 1.40.0 (Alnair), which adds notification split delivery, per-channel delivery tracking, DB-indexed idempotency, and provisioning error semantics.
