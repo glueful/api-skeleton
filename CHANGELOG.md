@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.23.3] - 2026-02-21 — Mutation WHERE + Queue Config + Async Notification
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.40.3`
+
+### Framework Fixes Included
+
+- **Mutation WHERE operator support**: `WhereClause`, `UpdateBuilder`, and `DeleteBuilder` now handle `<`, `<=`, `>`, `>=`, `!=`, `LIKE`, `IN`, `IS NULL`, `IS NOT NULL` in UPDATE/DELETE queries instead of crashing on non-equality conditions.
+- **Queue Redis config string coercion**: `DriverRegistry` accepts numeric-string ints/ports and boolean-like strings from `.env`, fixing config rejection in production.
+- **Async notification best-effort**: `NotificationService::queueAsyncDispatch()` wrapped in try/catch so side-effect failures don't crash primary API operations.
+
+### Notes
+
+Patch release. No breaking changes.
+
+```bash
+composer update glueful/framework
+```
+
+---
+
 ## [1.23.2] - 2026-02-21 — Config Merge Safe Dedup
 
 ### Changed
