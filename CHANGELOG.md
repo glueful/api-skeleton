@@ -4,6 +4,44 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.23.0] - 2026-02-21 — Notification Delivery Orchestration
+
+Release aligning the skeleton with Glueful Framework 1.40.0 (Alnair), which adds notification split delivery, per-channel delivery tracking, DB-indexed idempotency, and provisioning error semantics.
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.40.0`
+- **`004_CreateNotificationSystemTables.php`**: Added `notification_deliveries` table for per-channel delivery state tracking (`notification_uuid`, `channel`, `status`, `attempt_count`, `last_error`, `last_attempt_at`, `sent_at`) with unique key on `(notification_uuid, channel)`. Added `idempotency_key` column with index to `notifications` table.
+
+### Framework Features Now Available
+
+This release includes features from Glueful Framework 1.40.0:
+
+#### Split Delivery API
+- `NotificationService::sendSplit()` provides first-class sync/async channel separation. `send()` supports `sync_channels`, `async_channels`, `channel_failure_policy` (`any_success`, `require_critical`, `all`), and `critical_channels`.
+
+#### Per-Channel Delivery Tracking
+- New `notification_deliveries` table and repository APIs track delivery lifecycle per channel. Async retries target only failed channels — already-sent channels are skipped.
+
+#### DB-Indexed Idempotency
+- Dedicated `notifications.idempotency_key` column with index replaces the previous `_meta` JSON scan. Channel-level idempotency via unique key on `(notification_uuid, channel)`.
+
+#### Provisioning Exception
+- `ProvisioningException` for account setup failures maps to HTTP 500 and `api` log channel, replacing misleading 401 responses.
+
+### Notes
+
+After updating, run:
+
+```bash
+composer update glueful/framework
+php glueful migrate:run
+```
+
+Non-backward-compatible changes to notification sending flow and response structure.
+
+---
+
 ## [1.22.0] - 2026-02-20 — Token/Session Reimplementation
 
 Release aligning the skeleton with Glueful Framework 1.39.0 (Menkent), which replaces the legacy token/session model with a security-first architecture.

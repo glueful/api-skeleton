@@ -42,6 +42,7 @@ class CreateNotificationSystemTables implements MigrationInterface
      *
      * Tables created:
      * - notifications: Core notification storage
+     * - notification_deliveries: Per-channel delivery state and retry tracking
      * - notification_preferences: User channel preferences
      * - notification_templates: Templates for different channels
      *
@@ -55,6 +56,7 @@ class CreateNotificationSystemTables implements MigrationInterface
             $table->string('uuid', 12);
             $table->string('type', 100);
             $table->string('subject', 255);
+            $table->string('idempotency_key', 191)->nullable();
             $table->json('data')->nullable();
             $table->string('priority', 20)->default('normal');
             $table->string('notifiable_type', 100);
@@ -72,6 +74,30 @@ class CreateNotificationSystemTables implements MigrationInterface
             $table->index('type');
             $table->index('read_at');
             $table->index('scheduled_at');
+            $table->index(
+                ['notifiable_type', 'notifiable_id', 'type', 'idempotency_key', 'created_at'],
+                'idx_notifications_idempotency_lookup'
+            );
+        });
+
+        // Create Notification Deliveries Table (per channel status tracking)
+        $schema->createTable('notification_deliveries', function ($table) {
+            $table->bigInteger('id')->primary()->autoIncrement();
+            $table->string('notification_uuid', 12);
+            $table->string('channel', 100);
+            $table->string('status', 20)->default('pending'); // pending|sent|failed
+            $table->integer('attempt_count')->default(0);
+            $table->text('last_error')->nullable();
+            $table->timestamp('last_attempt_at')->nullable();
+            $table->timestamp('sent_at')->nullable();
+            $table->timestamp('created_at')->default('CURRENT_TIMESTAMP');
+            $table->timestamp('updated_at')->nullable();
+
+            $table->unique(['notification_uuid', 'channel'], 'unique_notification_delivery_channel');
+            $table->index('notification_uuid');
+            $table->index('channel');
+            $table->index('status');
+            $table->index('sent_at');
         });
 
         // Create Notification Preferences Table
@@ -132,6 +158,7 @@ class CreateNotificationSystemTables implements MigrationInterface
     {
         $schema->dropTableIfExists('notification_templates');
         $schema->dropTableIfExists('notification_preferences');
+        $schema->dropTableIfExists('notification_deliveries');
         $schema->dropTableIfExists('notifications');
     }
 
