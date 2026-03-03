@@ -4,6 +4,31 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.24.0] - 2026-03-03 — Profile-Driven Logging Bootstrap
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.41.0`
+- Updated `.env.example` with `LOG_PROFILE`, retention env keys, and production baseline example
+
+### Framework Changes Included
+
+- **Profile-driven logging bootstrap**: `config/logging.php` now resolves deterministic defaults from `LOG_PROFILE` (or `APP_ENV`) with built-in `development`, `staging`, `production`, and `testing` profiles. Explicit env vars override profile defaults.
+- **Production safety checks**: `system:check --production` now flags no durable log sink, disabled event/audit toggles, debug-level logging, and invalid retention values.
+- **Upsert column fix**: `InsertBuilder::buildUpsertQuery()` now passes column names to driver `upsert()` SQL builders, fixing PostgreSQL crash on null values.
+- **Audit toggle alignment**: Framework boot and `LogManager` now respect `EVENTS_ENABLED`, `EVENTS_AUDIT_LOGGING`, and `LOG_TO_FILE=false` correctly.
+
+### Upgrade Notes
+
+- **`LOG_TO_DB` default changed**: Previously defaulted to `true` when absent. Now defaults to `false` in all profiles. Add `LOG_TO_DB=true` to your `.env` if you require database logging.
+- New env vars recognized: `LOG_PROFILE`, `LOG_RETENTION_*_DAYS`. No action needed if unset.
+
+```bash
+composer update glueful/framework
+```
+
+---
+
 ## [1.23.4] - 2026-02-21 — WhereClause null fixes
 
 ### Changed
