@@ -4,6 +4,34 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.25.0] - 2026-05-20 — OpenAPI Spec Excellence
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.42.0`
+
+### Framework Changes Included
+
+- **OpenAPI spec quality overhaul**: Generated `openapi.json` now declares all configured security schemes via `SecuritySchemeRegistry` driven by `documentation.security_schemes` / `middleware_map` config. Per-operation `security` is derived from route middleware instead of being hardcoded.
+- **Unified `ErrorResponse` schema**: New component describing the `{success, message, error: {code, error_code, timestamp, request_id}}` envelope with an `error_code` enum. All CRUD 4xx responses `$ref` it.
+- **Deterministic operation IDs**: New `OperationIdGenerator` produces camelCase SDK method names and closes a gap where comment-driven generation emitted operations without any `operationId`.
+- **Pagination + field-selection schemas**: `PaginationMeta`, `PaginationLinks`, per-resource envelope schemas matching `PaginatedResourceResponse`. New `addRouteWithFieldsAttribute()` helper surfaces `?fields=` / `?expand=` from `#[Fields]` attributes.
+- **Auto-derived request examples**: `ExampleDeriver` populates JSON request bodies with realistic values inferred from Validator rules and schema properties; `@example` annotation overrides the derived value.
+- **OpenAPI 3.1 webhooks**: New `WebhookDocsBuilder` emits a top-level `webhooks` object from `documentation.webhooks` config — documents `X-Glueful-Signature` / `X-Glueful-Timestamp` headers and the `WebhookEnvelope` payload shape.
+- **`generate:client` CLI wrapper**: Thin command that shells out to `openapi-typescript` or `openapi-generator-cli` with safe defaults. Glueful does not own codegen logic.
+
+### Upgrade Notes
+
+- **Permission exception envelope (breaking)** — `PermissionUnauthorizedException` now returns the unified `{success, message, error: {code, error_code, timestamp, request_id}}` shape instead of the legacy top-level `{code, error_code}` form. Consumers reading `code`/`error_code` at the top level must read `error.code`/`error.error_code` instead.
+- **Regenerate SDK clients** — Operation IDs are now deterministic camelCase; the new components (`ErrorResponse`, `PaginationMeta`, `PaginationLinks`, `WebhookEnvelope`) require regeneration to surface in client types.
+- No new env vars. Configuration extensions live in `config/documentation.php`.
+
+```bash
+composer update glueful/framework
+```
+
+---
+
 ## [1.24.0] - 2026-03-03 — Profile-Driven Logging Bootstrap
 
 ### Changed
