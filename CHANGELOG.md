@@ -4,6 +4,40 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.26.0] - 2026-05-21 — Production Hardening
+
+### Added
+
+- **`database/migrations/009_CreateApiKeysTable.php`** — Schema migration for the framework's hardened API key system. Creates `api_keys` with columns for `uuid`, `user_id`, `name`, `key_prefix` (indexed), `key_hash` (`UNIQUE`), `scopes` (JSON), `allowed_ips` (JSON), `expires_at`, `rotated_from_id`, `revoked_at`, and timestamps. Run `php glueful migrate:run` after upgrading.
+- **`.env.example` entries for `DB_LAZY_LOADING_MODE`** — New env var mirroring the framework's N+1 detection feature.
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.43.0`.
+
+### Framework Changes Included
+
+- **ORM-aware N+1 query detection**: `PreventsLazyLoading` trait on `Model` flags lazy-loaded relations on members of a hydrated collection. Four modes (`off`/`warn`/`strict`/`auto`) configured via `DB_LAZY_LOADING_MODE`. See `docs/ORM/N_PLUS_ONE_DETECTION.md`.
+- **Driver-aware `$query->explain()`**: SQLite uses `EXPLAIN QUERY PLAN`; MySQL/PostgreSQL use `EXPLAIN`. New `Builder::explain()` on the ORM applies global scopes.
+- **Kubernetes-conventional health probes**: `GET /health/live`, `GET /health/ready`, `GET /health/startup`. Existing `/healthz` and `/ready` keep working.
+- **Hardened API keys**: Dedicated `api_keys` table with per-key scopes, CIDR allowlists, expiration, rotation with grace period, and environment-prefixed plaintext (`gf_live_*` / `gf_test_*`). New `#[RequireScope]` route attribute auto-attaches the `require_scope` middleware. CLI: `apikey:create|list|rotate|revoke`. See `docs/API_KEYS.md`.
+- **ORM bug fixes**: Property access routes to relations correctly; `??` triggers lazy-load instead of swallowing; child models inherit parent's `ApplicationContext`; eager loading no longer emits `WHERE x = NULL`.
+- **`ApiKeyAuthenticationProvider` is single-track**: The legacy `users.api_key` fallback is removed. `UserRepository::findByApiKey()` is also removed (zero callers verified).
+
+### Upgrade Notes
+
+- **Run the migration** — `php glueful migrate:run` to create the `api_keys` table. The new auth provider and `apikey:*` CLI commands both require it.
+- **No automatic data migration from `users.api_key`** — the canonical schema (`001_CreateInitialSchema.php`) never had that column. If you customized your schema to add one, use `php glueful apikey:create --user=<uuid> --name=<label>` or `ApiKeyService::create()` programmatically to migrate keys.
+- **`UserRepository::findByApiKey()` is gone.** Remove any external references.
+- **New env var (optional): `DB_LAZY_LOADING_MODE`.** Default `auto` (warn in dev, off in prod). Set `strict` in CI to fail tests on accidental N+1 patterns.
+
+```bash
+composer update glueful/framework
+php glueful migrate:run
+```
+
+---
+
 ## [1.25.0] - 2026-05-20 — OpenAPI Spec Excellence
 
 ### Changed
