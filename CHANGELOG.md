@@ -4,6 +4,34 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.27.0] - 2026-05-22 — Closing the Trust Gaps
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.44.0`.
+
+### Framework Changes Included
+
+- **Real tag-aware cache invalidation on the Redis driver**: `RedisCacheDriver::addTags()` / `invalidateTags()` are now backed by Redis SETs (`_gf_tag:{tag}` → set of cache keys). `getCapabilities()['features']['tags']` is now `true`. Unblocks `QueryCacheService`, `DistributedCacheService`, `ResponseCachingTrait`, and `php glueful cache:clear --tags` — all of which previously called the methods only to receive a silent `false`. Memcached and File drivers remain no-ops with explicit documentation.
+- **Real `ArchiveService::restoreFromArchive()`**: Replays archived rows into a target table inside a database transaction. Honors `ArchiveRestoreOptions`: `targetTable`, `offset`/`limit`, and `conflictResolution` (`skip` records conflicts; `overwrite` hard-deletes to bypass soft-delete then reinserts). Previously always returned a typed failure regardless of input.
+- **`security:report` stripped to honest sections**: Removed all `rand()`-driven sections (authentication, audit_summary, vulnerabilities, metrics), the hardcoded `compliance` block, and the `sendReportByEmail()` stub. Removed `--include-vulnerabilities`, `--include-metrics`, `--email`, `--days` options and the PDF format. Command now exports HTML/JSON/text reports of the production readiness score, environment configuration, system info, and recommendations only. Use `security:vulnerabilities` for dependency CVE scanning.
+- **`fields:whitelist-check` inspects real routes**: Replaced the hardcoded three-entry placeholder route list with real introspection via `Router::getStaticRoutes()`/`getDynamicRoutes()` and `Route::getFieldsConfig()`. Added a new low-severity `NON_STRICT_WHITELIST` finding for `/api/` routes with non-strict whitelists.
+- **README cache claim narrowed to reality**: Documents Redis-only tag support instead of the previous unqualified "tagging" claim.
+
+### Upgrade Notes
+
+- **No new migrations.** The Errai release is purely framework-side — no schema changes. `composer update` is sufficient.
+- **`security:report` output shape changed.** Consumers parsing the JSON output should expect `authentication`, `audit_summary`, `vulnerabilities`, `metrics`, and `compliance` keys to be absent. Scripts depending on the removed `--include-vulnerabilities`, `--include-metrics`, `--email`, or `--days` options will throw `InvalidOptionException`. PDF format is also gone; only `html`, `json`, and `text` accepted.
+- **Cache tagging is Redis-only.** `addTags()` / `invalidateTags()` calls on Memcached and File drivers continue to return `false`. Branch on `$cache->getCapabilities()['features']['tags']` if you need driver-agnostic behavior, or switch to Redis for real invalidation.
+- **`fields:whitelist-check` will report your real routes now.** Routes without `#[Fields]` or with non-strict whitelists may surface as findings — previously the command analyzed the same three placeholder entries every run.
+- **`restoreFromArchive()` no longer always fails.** Code that called this method and treated the failure as expected (e.g., catch-and-log scaffolding) should be reviewed — it will actually restore rows now.
+
+```bash
+composer update glueful/framework
+```
+
+---
+
 ## [1.26.0] - 2026-05-21 — Production Hardening
 
 ### Added
