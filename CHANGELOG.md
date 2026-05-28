@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.29.0] - 2026-05-28 — Fluent Query Caching
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.46.0`.
+
+### Framework Changes Included
+
+- **Fluent query result caching — `QueryBuilder::cache(?int $ttl = null, array $tags = [])`**: The fluent cache method now actually caches read queries (`get`/`first`/`count`/`max`) via `QueryCacheService`, with automatic per-table tags plus any caller-supplied `$tags` for targeted invalidation. Previously it was a silent no-op. Per-query (no global toggle), backward compatible, degrades to uncached if no cache backend is configured.
+- **Framework-wide PHPStan level-8 hardening (initiative kickoff)**: Internal typing fixes in the query-binding path (behavior-preserving); full `~914`-error level-8 gap catalogued in the framework's `docs/LEVEL8_TYPING_DEBT.md`. CI gate remains level 6.
+
+### Upgrade Notes
+
+- **No action required.** Framework-only release — no migrations, no env vars, no skeleton-side changes. `composer update` is sufficient.
+- **`->cache()` semantics changed from "no-op" to "actually caches"** on the framework side. If application code calls `->cache(ttl)` expecting nothing to happen, it'll now cache. The cache key is `query+params` (no auth/context scoping); make sure cached queries don't return user-scoped rows without a discriminator in the SQL.
+
+```bash
+composer update glueful/framework
+```
+
+---
+
 ## [1.28.0] - 2026-05-27 — The Second Factor
 
 ### Added
