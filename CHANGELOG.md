@@ -4,6 +4,35 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.28.0] - 2026-05-27 — The Second Factor
+
+### Added
+
+- **`database/migrations/010_AddTwoFactorEnabledToUsers.php`** — Adds the `users.two_factor_enabled` boolean column (default `false`) required by the framework's core email-PIN 2FA feature. Idempotent (`hasColumn()` guard). Run `php glueful migrate:run` after upgrading. Only needed if you intend to enable 2FA.
+- **`.env.example` entries for the `TWO_FACTOR_*` env vars** — `TWO_FACTOR_ENABLED` (default `false`) plus optional tunables (`TWO_FACTOR_PIN_LENGTH`, `TWO_FACTOR_PIN_TTL`, `TWO_FACTOR_CHALLENGE_TTL`, `TWO_FACTOR_DISABLE_FRESHNESS`, `TWO_FACTOR_TEMPLATE`), mirroring the framework's `config/auth.php`.
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.45.0`.
+
+### Framework Changes Included
+
+- **Core email-PIN 2FA (opt-in, off by default)**: `POST /auth/login` for an enrolled user returns a `challenge_token` and emails a 6-digit PIN; the client completes login at `POST /2fa/verify`. New `/2fa/enable|verify|disable` routes (registered only when `TWO_FACTOR_ENABLED=true`), `2fa:enable|disable|status` CLI, and a `config/auth.php` `two_factor` block. `/2fa/verify` re-validates the account before issuing a session and writes a session-scoped freshness marker that gates `/2fa/disable`. Requires `glueful/email-notification` for the email channel + `two-factor-pin` template.
+- **`selectRaw()` parameter bindings**: `QueryBuilder::selectRaw(string $expression, array $bindings = [])` binds positional `?` values; backward compatible. New `docs/SECURITY.md` documents the SQL-injection and XSS model.
+- **`AdminPermissionMiddleware` MFA cleanup**: removed the dead `X-MFA-Token` header path; `require_mfa` reads only the session handshake.
+
+### Upgrade Notes
+
+- **2FA is opt-in.** If you do not set `TWO_FACTOR_ENABLED=true`, this release is behavior-identical to 1.27.0 — the migration is optional and the `/2fa/*` routes are not registered. To enable: run the `010` migration, install `glueful/email-notification`, set `TWO_FACTOR_ENABLED=true`, and enroll users.
+- **New optional env vars.** See `.env.example`. All default to safe values that preserve current behavior.
+
+```bash
+composer update glueful/framework
+php glueful migrate:run   # only if enabling 2FA
+```
+
+---
+
 ## [1.27.0] - 2026-05-22 — Closing the Trust Gaps
 
 ### Changed
