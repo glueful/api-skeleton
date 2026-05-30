@@ -4,6 +4,31 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.30.0] - 2026-05-30 — Extension System Re-Architecture
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.47.0`.
+- **Migrated `config/extensions.php` to the single-key model** — a single `enabled` array of plain string FQCNs (no `::class`, no `only` / `dev_only` / `disabled` / `local_path` / `scan_composer`). Ships empty (no extensions enabled by default).
+- **Migrated `config/serviceproviders.php` to the single-key model** — `enabled` now holds the app's own providers as string FQCNs (`'App\\Providers\\AppServiceProvider'`).
+
+### Framework Changes Included
+
+- **Extension System Re-Architecture**: Composer-only discovery + a single `enabled` allow-list + a pure resolver that validates (missing provider/dependency, framework-version mismatch, cycle) and topologically orders providers. `extensions:enable|disable` validate before writing and recompile; `extensions:list` shows state (`✓` / `○` / `⚠`); `extensions:cache` is strict; `create:extension` scaffolds a Composer package + path repository. `ProviderLocator`, the local-folder scan, runtime PSR-4 registration, and `extensions:why` are removed. Adds `composer/semver`.
+
+### Upgrade Notes
+
+- **Breaking config change.** If you customized `config/extensions.php` / `config/serviceproviders.php`, convert them to the single `enabled` list of plain string FQCNs; map old keys per the framework's `docs/EXTENSIONS_UPGRADE.md`.
+- **Run `composer update`** so the new `composer/semver` dependency installs (the resolver fatals at boot without it).
+- **Enable extensions explicitly** (`php glueful extensions:enable <name>`) and **run `php glueful extensions:cache` in production** — installing a package no longer auto-loads it, and production boots only from the compiled manifest.
+
+```bash
+composer update glueful/framework
+php glueful extensions:cache   # required in production
+```
+
+---
+
 ## [1.29.0] - 2026-05-28 — Fluent Query Caching
 
 ### Changed
