@@ -4,6 +4,28 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.31.0] - 2026-05-31 — Router Verb Completeness
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.48.0` (the previous `^1.47.0` already permitted 1.48.0; bumped for clarity).
+
+### Framework Changes Included
+
+- **First-class `PATCH` and `OPTIONS` routing verbs**: New `$router->patch()` / `$router->options()` shortcuts and `#[Patch]` / `#[Options]` attributes; the `#[Route(methods: [...])]` array form now accepts `PATCH`, `OPTIONS` and `HEAD`. Both verbs were previously unreachable through the public routing API.
+- **Explicit `OPTIONS` routes beat auto-CORS**: an explicitly registered `OPTIONS` route now runs its own handler; automatic CORS preflight (204 + `Allow`) remains the default when none is registered.
+- **Route precedence documented and pinned** (static > dynamic; literal first segment > parameter first segment; registration order within a group).
+
+### Upgrade Notes
+
+- **No action required.** Framework-only release — no migrations, no env vars, no skeleton-side changes. `composer update` is sufficient.
+
+```bash
+composer update glueful/framework
+```
+
+---
+
 ## [1.30.0] - 2026-05-30 — Extension System Re-Architecture
 
 ### Changed
