@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.32.0] - 2026-06-01 — Dependency Hardening
+
+### Changed
+
+- Bump framework dependency to `glueful/framework ^1.49.0` (the previous `^1.48.0` already permitted 1.49.0; bumped for clarity).
+
+### Framework Changes Included
+
+- **`Http\Client` forwards `auth_basic`** for per-request HTTP Basic auth (previously dropped).
+- **`whatsapp` is a supported `SendNotification` queue type** for async phone-messaging channel delivery.
+- **Intervention Image v4** (`^4.1`); the framework's `ImageProcessor`/`image()` API is unchanged.
+- **Security**: all known dependency advisories patched within `^7.4`/`^10.5` (Symfony 7.4.x incl. HIGH-severity mailer/mime CVEs, PHPUnit 10.5.63); `composer audit` clean.
+
+### Upgrade Notes
+
+- **No action required.** Framework-only release — no migrations, no env vars, no skeleton-side code changes. `composer update` is sufficient. Apps using `intervention/image` *directly* (not via the framework's image helper) should move to its v4 API.
+
+```bash
+composer update glueful/framework
+```
+
+---
+
 ## [1.31.0] - 2026-05-31 — Router Verb Completeness
 
 ### Changed
