@@ -22,3 +22,10 @@
 .DS_Store
 *.log
 bootstrap/cache/
+
+# --- Runtime artifacts ---
+/:memory:
+/storage/cache/*
+!/storage/cache/.gitkeep
+/storage/database/*.sqlite
+!/storage/database/glueful.sqlite
