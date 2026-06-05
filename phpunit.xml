@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://schema.phpunit.de/10.5/phpunit.xsd"
+         bootstrap="vendor/autoload.php"
+         colors="true"
+         cacheDirectory=".phpunit.cache">
+    <testsuites>
+        <testsuite name="Feature">
+            <directory>tests/Feature</directory>
+        </testsuite>
+        <testsuite name="Unit">
+            <directory>tests/Unit</directory>
+        </testsuite>
+    </testsuites>
+    <source>
+        <include>
+            <directory>app</directory>
+        </include>
+    </source>
+    <php>
+        <env name="APP_ENV" value="testing"/>
+        <env name="APP_DEBUG" value="true"/>
+        <env name="CACHE_DRIVER" value="array"/>
+        <env name="DB_DRIVER" value="sqlite"/>
+        <env name="DB_SQLITE_DATABASE" value=":memory:"/>
+        <env name="LOG_TO_FILE" value="false"/>
+        <env name="LOG_TO_DB" value="false"/>
+        <env name="JWT_KEY" value="testing-secret-key-not-for-production-use-only"/>
+        <env name="APP_KEY" value="base64:dGVzdGluZy1hcHAta2V5LTMyLWJ5dGVzLWxvbmchIQ=="/>
+    </php>
+</phpunit>
