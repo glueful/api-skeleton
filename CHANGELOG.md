@@ -4,6 +4,37 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.33.0] - 2026-06-05 — Slim Skeleton & First-Party Identity
+
+### Added
+
+- **`glueful/users ^1.0.0`** (published) as a first-class dependency — first-party identity store + account lifecycle (email verification, password recovery), email-PIN 2FA, and the account read endpoints `GET /me`, `GET /users/{uuid}`, and the paginated `GET /users`.
+- **`USERS_*` env flags** in `.env.example` (all default `false`): `USERS_USER_LOOKUP_ENABLED`, `USERS_USER_LIST_ENABLED`, `USERS_USER_LIST_ALLOW_EMAIL_FILTER`.
+- **Opt-in RBAC documentation** (`README.md` + `config/extensions.php`): enable `glueful/aegis`, run migrations, then `php glueful aegis:bootstrap-admin --user=<uuid-or-email>` to grant `users.read` and unlock the lookup/list endpoints.
+- **Identity-seam test coverage**: `tests/Feature/AuthEndToEndTest.php` (login through the seam; role-gated routes fail closed when no RBAC provider is enabled), test support infra (`tests/Support/`, `tests/Unit/`), and a project `phpunit.xml`.
+- **`config/capabilities.php`** — the Core Capability Schema Switchboard: per-capability flags (`scheduler`, `notifications`, `metrics`, `archive`) gating which framework-core platform-capability migrations install. Complements the now framework/extension-owned schema by giving the app one place to opt core schema in/out (auth schema is always installed; `locks`/`queue`/`uploads` are derived from their own config).
+
+### Changed
+
+- **User store extracted into `glueful/users`.** The `users` and `profiles` tables (and the 2FA flag) — previously created by the skeleton's `001_CreateInitialSchema` / `010_AddTwoFactorEnabledToUsers` — are now owned and migrated by the extension. The skeleton depends on it instead of bundling its schema.
+- `glueful/users` now resolves from **Packagist (`^1.0.0`)** instead of the local path repository; the `../extensions/users` path-repo entry was removed.
+
+### Removed
+
+- **All bundled core migrations.** The skeleton no longer ships database schema — each table is now owned and migrated by the package that uses it:
+  - `001_CreateInitialSchema` (created `users`, `profiles`, `auth_sessions`, `blobs`) and `010_AddTwoFactorEnabledToUsers` → **`glueful/users`** (`users`, `profiles`, 2FA) and **framework core** (`auth_sessions`, blob storage).
+  - `008_CreateAuthRefreshTokensTable`, `009_CreateApiKeysTable` → **framework core** (auth/session spine: `auth_refresh_tokens`, `api_keys`).
+  - `003_CreateScheduledJobsTables`, `004_CreateNotificationSystemTables`, `005_CreateArchiveSystemTables`, `006_CreateQueueSystemTables`, `007_CreateLocksTable` → **framework core** subsystems (scheduler, notifications, archive, queue, locks).
+- `database/migrations/` is now empty (kept via `.gitkeep`) for *your* application migrations.
+
+### Upgrade Notes
+
+- **This is a starter template** — these changes affect newly-scaffolded projects, not a live `composer update` of an existing app.
+- **Fresh installs:** `php glueful migrate:run` now applies the framework + enabled-extension migrations only. The identity/auth tables (`users`, `profiles`, `auth_sessions`, `auth_refresh_tokens`, `api_keys`, 2FA) come from the framework core + `glueful/users` (enabled by default) — do not re-add the removed skeleton migrations.
+- **Permission-gated endpoints** (`GET /users`, `GET /users/{uuid}`) require an RBAC provider. They are off by default; see the README "Identity, Accounts & RBAC" section to enable `glueful/aegis` and bootstrap an admin.
+
+---
+
 ## [1.32.0] - 2026-06-01 — Dependency Hardening
 
 ### Changed

@@ -27,6 +27,48 @@ curl http://127.0.0.1:8080/health
 | `/v1/status` | GET | Lightweight status check |
 | `/health` | GET | Framework health endpoint |
 
+## Identity, Accounts & RBAC
+
+The skeleton enables two extensions by default — **`glueful/users`** (identity store + account lifecycle) and **`glueful/email-notification`** (the `email` channel). Authorization (RBAC) is **opt-in**.
+
+**1. Default skeleton — no RBAC required**
+
+- Login / token refresh / logout via the core auth seam (backed by `glueful/users`).
+- `GET /me` — the authenticated user's account + nested profile (authentication only).
+- Account lifecycle (`/auth/verify-email`, `/auth/forgot-password`, `/auth/reset-password`).
+- Email-PIN 2FA (`/2fa/*`, when `TWO_FACTOR_ENABLED=true`).
+
+**2. Optional user lookup / list — needs RBAC**
+
+These are **off by default** and **permission-gated** (`users.read`):
+
+```env
+USERS_USER_LOOKUP_ENABLED=true   # GET /users/{uuid}
+USERS_USER_LIST_ENABLED=true     # GET /users  (also requires the lookup flag)
+```
+
+Because they require `users.read`, they only work once an RBAC provider is enabled and the permission is granted — without one, the framework gate fails closed (`403`).
+
+**3. Enabling RBAC (`glueful/aegis`)**
+
+```bash
+composer require glueful/aegis
+php glueful extensions:enable aegis
+php glueful migrate:run                                    # RBAC tables + seeds default roles
+php glueful aegis:bootstrap-admin --user=<uuid-or-email>   # syncs the catalog, grants users.read, assigns the role
+```
+
+`aegis:bootstrap-admin` is the one-command first-admin path: it syncs the declared permission catalog, creates/reuses a role (default `admin`), grants it `users.read`, and assigns that role to your user — enough to unlock the lookup/list endpoints. Useful flags:
+
+- `--role=administrator` — target a specific (e.g. seeded) role instead of `admin`.
+- `--permission=posts.read` — repeatable; grant specific permissions instead of the `users.read` default.
+- `--all-catalog` — grant **every** catalog permission (full admin).
+- `--dry-run` — preview without writing.
+
+> Manual equivalent (if you prefer): `php glueful permissions:sync`, then assign a seeded role (`superuser`/`administrator`) to the user via the roles API (`POST /{user_uuid}/roles`).
+
+> Modern-framework norm: the user store is a sensible default; full RBAC stays opt-in so a fresh skeleton boots lean and secure (fail-closed) without imposing roles/permissions setup until you need it.
+
 ## Project Structure
 
 ```
