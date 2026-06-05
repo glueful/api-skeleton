@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.34.0] - 2026-06-05 — RBAC Opt-In & Mail Transport Notes
+
+### Changed
+
+- **RBAC (`glueful/aegis`) is now fully opt-in.** It's no longer a bundled `require-dev` dependency, and the `repositories` path-repo block was dropped entirely — the skeleton ships **no** `repositories`. Enable RBAC only when you need permission-gated features: `composer require glueful/aegis` (see README → "Identity, Accounts & RBAC").
+- Bumped **`glueful/email-notification` → `^1.7.0`** (Framework 1.50 compatibility: drops a dead event listener that referenced a removed framework interface; raises its minimum framework to `>=1.50.1`).
+
+### Documentation
+
+- **Mail transport guidance** in `.env.example`: SMTP works out of the box (the framework ships `symfony/mailer`); for an API transport (Postmark, Mailgun, Amazon SES, SendGrid, Brevo) install the matching `symfony/<provider>-mailer` package and set `MAIL_MAILER` / the DSN. Points to `glueful/email-notification`'s README for per-provider setup.
+
+### Upgrade Notes
+
+- **No action required.** RBAC was already disabled by default; this only removes the bundled (dev-only) dependency and the local path repo from the template. To add roles/permissions: `composer require glueful/aegis`, enable `AegisServiceProvider` in `config/extensions.php`, run migrations, then `php glueful aegis:bootstrap-admin --user=<uuid-or-email>`.
+
+---
+
 ## [1.33.0] - 2026-06-05 — Slim Skeleton & First-Party Identity
 
 ### Added
