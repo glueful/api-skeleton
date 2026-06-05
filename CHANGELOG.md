@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.34.1] - 2026-06-05 — Framework 1.50.2
+
+### Changed
+
+- Bumped **`glueful/framework` → `^1.50.2`**. The 1.50.2 patch adds the editor-clean **`@queryParam name:type="…"`** route-doc tag (parsed into the OpenAPI spec, avoiding the reserved-`@param` IDE/Intelephense false positives) and fixes a doc-gen bug that dropped path parameters from routes which also declared a query parameter. Framework-only — no env vars, no migrations, no API breaks.
+
+### Upgrade Notes
+
+- **No action required.** `composer update glueful/framework` picks up 1.50.2; the previous `^1.50.1` constraint already permitted it. The new route-doc tag is opt-in and the legacy `@param` form still works.
+
+---
+
 ## [1.34.0] - 2026-06-05 — RBAC Opt-In & Mail Transport Notes
 
 ### Changed
