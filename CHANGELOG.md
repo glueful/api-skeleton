@@ -4,6 +4,18 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.35.1] - 2026-06-06 — Email Notification 1.8.0
+
+### Changed
+
+- Bumped **`glueful/email-notification` → `^1.8.0`**. The 1.8.0 release migrates the extension to the framework 1.51.0 notification APIs: `EmailChannel` now implements `RichNotificationChannel` (structured `NotificationResult` — provider message id, latency, retryability), registration moves to the framework's `registerNotificationChannel()` / `registerNotificationExtension()` `boot()` helpers (required now that the framework no longer hardcodes the provider), and notification retry config reads from the channel-agnostic `notifications.retry` key.
+
+### Upgrade Notes
+
+- **No action required.** `composer update glueful/email-notification` picks up 1.8.0. No new env vars (existing `MAIL_RETRY_*` tuning still applies, now surfaced under `notifications.retry`), no migrations. The active email-delivery path is unchanged.
+
+---
+
 ## [1.35.0] - 2026-06-06 — Framework 1.51.0
 
 ### Changed
