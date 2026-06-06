@@ -14,7 +14,7 @@
   "require": {
     "php": "^8.3",
     "glueful/email-notification": "^1.7.0",
-    "glueful/framework": "^1.50.2",
+    "glueful/framework": "^1.51.0",
     "glueful/users": "^1.0.0"
   },
   "require-dev": {

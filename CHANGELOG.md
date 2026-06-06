@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.35.0] - 2026-06-06 — Framework 1.51.0
+
+### Changed
+
+- Bumped **`glueful/framework` → `^1.51.0`** (codename *Larawag*). The 1.51.0 release is a five-part refinement of the core notification subsystem: a real in-app **`database`** channel (the default `['database']` channel now resolves end-to-end instead of failing as `channel_not_found`), channel validation moved from construction to **dispatch**, **optional/safe persistence** (`NOTIFICATIONS_DATABASE_STORE=false`), an injectable **async-queue** seam, structured channel results (`NotificationResult`), and **extension-driven** channel registration.
+
+### Upgrade Notes
+
+- **No skeleton action required** for typical apps — `composer update glueful/framework` picks up 1.51.0. No new env vars and no migrations (the `notifications` capability default stays `true`; set `NOTIFICATIONS_DATABASE_STORE=false` to run without a database store).
+- **Custom notification code only.** Two breaking changes apply if you touch notification internals directly: `ChannelManager::getAvailableChannels()` was renamed to `getRegisteredChannelNames()` (no aliases; use `getActiveChannelNames()` for available-only names), and the notification jobs/commands (`DispatchNotificationChannels`, `SendNotification`, `ProcessRetriesCommand`, `NotificationRetryTask`) now require an `ApplicationContext` — the queue worker and console kernel already provide one. Custom channel packages must register from `ServiceProvider::boot()` via `registerNotificationChannel()` / `registerNotificationExtension()`. See the framework changelog's Upgrade Notes.
+
+---
+
 ## [1.34.1] - 2026-06-05 — Framework 1.50.2
 
 ### Changed
