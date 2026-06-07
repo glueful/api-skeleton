@@ -23,6 +23,9 @@ return [
         // Email delivery channel — registers the 'email' notification channel that Users'
         // forgot-password / email-verification flows send through. Without it those emails no-op.
         'Glueful\\Extensions\\EmailNotification\\EmailNotificationServiceProvider',
+        // Rich media processing — image transforms/variants, thumbnails on upload, and
+        // media metadata. Binds the framework's MediaProcessorInterface seam.
+        'Glueful\\Extensions\\Media\\MediaServiceProvider',
         // Optional RBAC (roles/permissions). Needed only for permission-gated endpoints
         // such as GET /users and GET /users/{uuid} (which require `users.read`). To enable:
         //   composer require glueful/aegis

@@ -4,6 +4,33 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.36.0] - 2026-06-07 — Framework 1.52.0 Mizar
+
+### Added
+
+- **Bundles `glueful/media`** so image processing, thumbnails on upload, on-demand image variants, and media metadata work out of the box — added to `require` (`^1.0.0`) and enabled in `config/extensions.php`, with the key `IMAGE_*` settings documented in `.env.example`. The other three extracted subsystems (`archive`, `cdn`, `queue-ops`) remain opt-in.
+
+### Changed
+
+- Bumped **`glueful/framework` → `^1.52.0`**. The 1.52.0 release extracts four subsystems out of core into standalone, opt-in extensions: **Archive** (`glueful/archive`), **CDN / edge cache** (`glueful/cdn`), **queue ops / autoscaling** (`glueful/queue-ops`), and **image processing / media** (`glueful/media`). Core keeps only the seams (e.g. `EdgeCacheInterface` + `NullEdgeCache`, the per-queue runtime tuning, `ImageSecurityValidator` with built-in defaults). See the framework `UPGRADE.md` for the full per-subsystem "what moved / what stays" notes.
+
+### Removed
+
+- **Aligned the skeleton's published config to framework 1.52.0 — the now-extension-owned config/env it previously shipped was removed:**
+  - `config/image.php` — **deleted**. The bundled `glueful/media` provides the `image` config defaults (via `mergeConfig`); publish a `config/image.php` only to override them.
+  - `config/cache.php` — removed the `edge` block (the `EDGE_CACHE_*` settings). Edge/CDN config moves to `glueful/cdn`.
+  - `config/queue.php` — removed the `workers` ops blocks (`process`, `auto_scaling`, `resource_limits`, `resource_thresholds`, `supervisor`) and the per-queue ops keys (`workers`, `max_workers`, `auto_scale`). `workers` now holds exactly `queues` (per-queue `priority`/`memory_limit`/`timeout`/`max_jobs`, read by the core runtime) + `performance`. Worker-count / autoscaling tuning moves to `glueful/queue-ops` (`queue_ops.*`).
+  - `config/capabilities.php` — removed the `archive` key. Archiving's schema gate moved to the `glueful/archive` extension (`ARCHIVE_DATABASE_SCHEMA` now backs the extension's own `archive.enabled`); the core switchboard no longer reads it.
+  - `.env.example` — removed the queue-ops vars: `QUEUE_PROCESS_ENABLED`, `QUEUE_AUTO_SCALING`, the `*_QUEUE_AUTO_SCALE` autoscaling toggles, and the `*_QUEUE_WORKERS` / `*_QUEUE_MAX_WORKERS` presets. The per-queue `*_QUEUE_MEMORY` / `*_QUEUE_TIMEOUT` / `*_QUEUE_MAX_JOBS` vars are **kept** (still read by the core runtime).
+
+### Upgrade Notes
+
+- **`glueful/media` ships bundled and enabled** (image processing out of the box).
+  Each extension auto-discovers via its `extra.glueful` manifest; run `php glueful migrate:run` for the ones that ship schema (archive). See the framework `UPGRADE.md` for the per-subsystem migration / command-manifest notes.
+- **Refresh the command manifest on deploy.** This release removes the core `archive:manage`, `cache:purge`, and `queue:autoscale` commands; a cached `storage/cache/glueful_commands_manifest.php` generated before the upgrade still references them and breaks CLI boot. Run `php glueful commands:cache --clear` as part of the deploy (note: `cache:clear` does **not** clear the command manifest).
+
+---
+
 ## [1.35.1] - 2026-06-06 — Email Notification 1.8.0
 
 ### Changed
