@@ -4,6 +4,29 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.36.1] - 2026-06-08 — Framework 1.53.0 Nunki
+
+### Changed
+
+- Bumped **`glueful/framework` → `^1.53.0`**. The 1.53.0 (Nunki) release adds two chainable database
+  extension seams (`QueryExecutor::addQueryInterceptor()` and `Connection::addTableHook()`, both no-ops
+  unless an extension registers a hook) and fixes three bugs: the `SecureSerializer` namespace-wildcard /
+  `C:` allowlist (queue job deserialization), table-qualified WHERE columns on `UPDATE`/`DELETE`, and
+  `Connection::class` container resolution (so `db()` / `app($ctx, Connection::class)` resolve out of the
+  box — a latent bug the skeleton shared). The previous `^1.52.0` constraint already permitted 1.53.0; the
+  bump to `^1.53.0` is for clarity. See the framework release notes for detail.
+
+### Upgrade Notes
+
+- **No action required for the skeleton.** `composer update glueful/framework` picks up 1.53.0. No new env
+  vars, no migrations, no config changes. **Backward-compatible for the skeleton** — standard `O:` queue
+  jobs, scoping, and DI are unchanged. One underlying framework change *tightens* `C:` / `Serializable`
+  deserialization validation (previously unchecked `C:` payloads are now allowlist-validated, like `O:`
+  objects); this is a security fix and **does not affect standard `O:` queue jobs** (the `Serializable` /
+  `C:` form is deprecated since PHP 8.1 and effectively unused in app jobs).
+
+---
+
 ## [1.36.0] - 2026-06-07 — Framework 1.52.0 Mizar
 
 ### Added
