@@ -4,6 +4,31 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.37.0] - 2026-06-10 — Framework 1.54.0 Okab
+
+### Changed
+
+- Bumped **`glueful/framework` → `^1.54.0`**. The 1.54.0 (Okab) release: (1) fixes container precedence so
+  extension service definitions genuinely override core defaults (previously dropped silently — the fix
+  that makes every "core default + extension override" seam real); (2) adds the `Glueful\Entitlements`
+  core seam (contract-only commercial capability gates, consumed by the forthcoming `glueful/subscriptions`);
+  and (3) **breaking:** extracts the `s3`/`gcs`/`azure` storage driver factories to first-party provider
+  packs behind a new storage driver registry — core ships only `local`/`memory`. Also new: the
+  `storage:test [disk]` diagnostics command and an optional, default-off `native_url` blob-API field.
+
+### Upgrade Notes
+
+- **The skeleton itself needs no code changes** — it ships on the `local` uploads disk, which stays in core.
+- **If your app added a cloud disk** (`driver: s3`, including R2/MinIO/Spaces/Wasabi): `composer require
+  glueful/storage-s3` (its presets cover the S3-compatible providers). `gcs`/`azure` users should hold the
+  upgrade until those packs publish (following shortly). A missing pack fails fast with an exception naming
+  the package to install.
+- **On deploy:** `php glueful commands:cache` (new `storage:test` command joins the manifest) and
+  `php glueful di:container:compile --force` if you precompile the container (the precedence fix only takes
+  effect in a freshly compiled artifact).
+- No new required env vars, no migrations. Optional: `UPLOADS_NATIVE_MAX_PRIVATE_TTL` (default 900) if you
+  opt a disk into native provider URLs.
+
 ## [1.36.1] - 2026-06-08 — Framework 1.53.0 Nunki
 
 ### Changed
