@@ -4,6 +4,33 @@ All notable changes to this project will be documented in this file.
 
 The format is based on Keep a Changelog, and this project adheres to Semantic Versioning.
 
+## [1.38.0] - 2026-06-11 — Framework 1.55.0 Peacock
+
+### Changed
+
+- Bumped **`glueful/framework` → `^1.55.0`**. The 1.55.0 (Peacock) release is a
+  **security & correctness hardening** pass over routing/permissions, auth, storage paths,
+  the database write-path, deserialization, and the container/extension boundary. Mostly
+  bug fixes, but a few behavioral/default changes apply -- see the framework Upgrade Notes.
+
+### Upgrade Notes
+
+- **The skeleton itself needs no code changes.** It ships no `#[RequiresPermission]`/
+  `#[RequiresRole]` routes of its own and authenticates via the `X-API-Key` header / JWT,
+  so the behavioral changes below do not affect the stock skeleton. They matter for apps
+  built on it:
+  - **Permission attributes now enforce** -- a route annotated with `#[RequiresPermission]`/
+    `#[RequiresRole]` without a permission provider bound now returns 403. Bind a provider
+    (e.g. `glueful/aegis`) or grant the permissions.
+  - **API key via `?api_key=` is off by default** -- use the `X-API-Key` header or set
+    `security.api_keys.allow_query_param = true`.
+  - **Signed URLs fail closed without a secret** -- configure `uploads.signed_urls.secret`
+    / `SIGNED_URL_SECRET` (a distinct value per environment).
+  - **Extensions fail loud at boot outside production** -- a previously-silent wiring failure
+    now surfaces; fix the binding.
+- No new env vars, no migrations. New optional config keys `security.api_keys.allow_query_param`
+  / `security.csrf.rate_limit_fail_closed` (both default `false`).
+
 ## [1.37.0] - 2026-06-10 — Framework 1.54.0 Okab
 
 ### Changed
