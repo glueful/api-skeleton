@@ -19,7 +19,7 @@ $cli = new GluefulConsole($container);
 // Run CLI
 try {
     exit($cli->run(new ArgvInput(), new ConsoleOutput()));
-  } catch (Exception $e) {
+} catch (Throwable $e) {
     echo "Error: " . $e->getMessage() . "\n";
     exit(1);
 }

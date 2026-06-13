@@ -165,6 +165,27 @@ php glueful cache:clear              # Clear cache
 php glueful generate:openapi         # Generate API docs
 ```
 
+## Deploying To Production
+
+Before deploying a generated app, review this checklist:
+
+```env
+APP_ENV=production
+APP_DEBUG=false
+FORCE_HTTPS=true
+```
+
+- Generate strong secrets with `php glueful generate:key`, then set `APP_KEY` and `JWT_KEY` in the production environment.
+- Move from SQLite to your production database driver and run `php glueful migrate:run` during deployment.
+- Move `QUEUE_CONNECTION` away from `sync` for background work, usually to `database`, `redis`, or your queue driver.
+- Move `CACHE_DRIVER` away from local file storage when the app runs on more than one server.
+- Generate the production command manifest with `php glueful commands:cache`.
+- Check route-cache health with `php glueful route:cache:status`; clear stale routes with `php glueful route:cache:clear`.
+- Clear application cache with `php glueful cache:clear` after config or deployment changes.
+- Enable PHP opcache in production and deploy with Composer's optimized autoloader.
+- Point logs at `storage/logs` or your platform log sink, never under `public/`.
+- Keep `/docs` disabled unless API docs should be public in that environment.
+
 ## Testing
 
 ```bash
