@@ -4,7 +4,8 @@
  * Documentation Generation Configuration
  *
  * Centralizes all settings for OpenAPI/Swagger documentation generation.
- * Used by ResourceRouteExpander, DocGenerator, CommentsDocGenerator, and OpenApiGenerator.
+ * Used by ResourceRouteExpander, DocGenerator, RouteReflectionDocGenerator,
+ * and OpenApiGenerator.
  */
 
 $root = dirname(__DIR__);
@@ -105,11 +106,6 @@ return [
         // Final OpenAPI specification file location
         'openapi' => $root . '/docs/openapi.json',
 
-        // JSON definitions for route-based documentation
-        'route_definitions' => $root . '/docs/json-definitions/routes',
-
-        // JSON definitions for extension documentation
-        'extension_definitions' => $root . '/docs/json-definitions/extensions',
     ],
 
     /*
@@ -161,8 +157,10 @@ return [
     | Security Schemes
     |--------------------------------------------------------------------------
     |
-    | Default security schemes to include in the generated documentation.
-    | These define authentication methods for your API.
+    | Declared OpenAPI 3.1 security schemes. Keys are the scheme names that
+    | appear in #/components/securitySchemes and in operation `security`
+    | requirements. The middleware_map tells the documentation generator
+    | which scheme(s) protect a route based on its declared middleware.
     |
     */
     'security_schemes' => [
@@ -170,21 +168,30 @@ return [
             'type' => 'http',
             'scheme' => 'bearer',
             'bearerFormat' => 'JWT',
-            'description' => 'JWT authentication token',
+            'description' => 'JWT bearer token in the Authorization header.',
         ],
+        'ApiKeyAuth' => [
+            'type' => 'apiKey',
+            'in' => 'header',
+            'name' => 'X-API-Key',
+            'description' => 'API key issued via the developer console.',
+        ],
+    ],
+
+    'middleware_map' => [
+        'auth' => ['BearerAuth'],
+        'api_key' => ['ApiKeyAuth'],
     ],
 
     /*
     |--------------------------------------------------------------------------
-    | Inferred Error Responses
+    | Inferred error responses
     |--------------------------------------------------------------------------
-    |
     | Body schema + descriptions the generator attaches to auto-inferred error
     | responses (401/403 on secured routes, 429 on rate-limited routes, plus any
     | status listed in `always`). `schema: null` uses a slim inline {success,
     | message} shape; set a thin public-typed DTO class to reflect instead.
     | Do NOT point this at Glueful\DTOs\ErrorResponseDTO (the fat debug DTO).
-    |
     */
     'errors' => [
         'schema'   => env('API_DOCS_ERROR_SCHEMA', null),
@@ -207,10 +214,7 @@ return [
     |
     */
     'options' => [
-        // Include route-based documentation from PHPDoc comments
-        'include_routes' => true,
-
-        // Include extension documentation
+        // Include extension routes in the generated spec (read by the reflect generator)
         'include_extensions' => true,
 
         // Pretty print JSON output
@@ -219,6 +223,28 @@ return [
         // Generate resource/table routes (CRUD endpoints for all database tables)
         // Set to false to disable automatic generation of table-based API endpoints
         'include_resource_routes' => env('API_DOCS_INCLUDE_RESOURCE_ROUTES', false),
+
+        // Drop default component schemas (LoginRequest, User, Notification, ...) that
+        // no path/webhook references, so the spec carries only schemas it actually uses.
+        // Default false: the built-in defaults are kept for backward compatibility.
+        // Explicitly-documented schemas (from route/extension fragments) are always kept.
+        'prune_unreferenced_schemas' => env('API_DOCS_PRUNE_UNREFERENCED_SCHEMAS', false),
+
+        // Tag allow/deny filter applied to the assembled spec before write. `include` is an
+        // allow-list (empty = keep all tags); `exclude` is a deny-list and WINS over include.
+        // Lets a consumer-facing spec drop infra groups (e.g. Health, Documentation) without
+        // turning off whole route sources. Both default empty (no filtering). Comma-separated
+        // env overrides, e.g. API_DOCS_EXCLUDE_TAGS="Health,Documentation,Security".
+        'tags' => [
+            'include' => array_values(array_filter(array_map(
+                'trim',
+                explode(',', (string) env('API_DOCS_INCLUDE_TAGS', ''))
+            ), static fn(string $v): bool => $v !== '')),
+            'exclude' => array_values(array_filter(array_map(
+                'trim',
+                explode(',', (string) env('API_DOCS_EXCLUDE_TAGS', ''))
+            ), static fn(string $v): bool => $v !== '')),
+        ],
     ],
 
     /*
@@ -291,5 +317,23 @@ return [
             'hide_download_button' => false,
             'theme' => [],
         ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Webhooks
+    |--------------------------------------------------------------------------
+    |
+    | Events this API dispatches as outbound HTTP webhooks. Each entry will
+    | appear in the OpenAPI 3.1 `webhooks` object so SDK generators can
+    | scaffold handler types automatically.
+    |
+    */
+    'webhooks' => [
+        // Example:
+        // 'user.created' => [
+        //     'summary' => 'A new user has been created.',
+        //     'payload_schema' => 'User',  // References #/components/schemas/User
+        // ],
     ],
 ];
