@@ -16,7 +16,7 @@
     "glueful/email-notification": "^1.10.0",
     "glueful/framework": "^1.61.1",
     "glueful/media": "^1.1.0",
-    "glueful/users": "^2.0.0"
+    "glueful/users": "^2.1.0"
   },
   "require-dev": {
     "phpunit/phpunit": "^10.5",
