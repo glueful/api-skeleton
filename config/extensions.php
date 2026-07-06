@@ -34,4 +34,20 @@ return [
         //   php glueful aegis:bootstrap-admin --user=<uuid-or-email>   # syncs catalog, grants users.read, assigns the role
         // 'Glueful\\Extensions\\Aegis\\Services\\AegisServiceProvider',
     ],
+
+    /**
+     * In-admin extension installer (composer require via the /extensions API).
+     * Off in production unless EXTENSIONS_INSTALL_ENABLED is explicitly set.
+     * Keep env() reads here — NOT inside `enabled` above (that must stay a
+     * literal list the enable/disable writer can edit).
+     */
+    'install' => [
+        'enabled'    => env('EXTENSIONS_INSTALL_ENABLED', env('APP_ENV') !== 'production'),
+        'timeout'    => (int) env('EXTENSIONS_INSTALL_TIMEOUT', 600),
+        'vendor'     => 'glueful/',
+        // Absolute path to a CLI php used to run composer. Leave null to auto-detect
+        // (PhpExecutableFinder, then PHP_BINARY). Set it when the web SAPI's php is not
+        // a usable CLI interpreter (Apache module / php-cgi / nginx+FPM).
+        'php_binary' => env('EXTENSIONS_INSTALL_PHP_BINARY') ?: null,
+    ],
 ];
