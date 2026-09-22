@@ -50,14 +50,6 @@ return [
             'block_for' => null,
             'job_expiration' => 3600,
         ],
-
-        'sync' => [
-            'driver' => 'sync',
-        ],
-
-        'null' => [
-            'driver' => 'null',
-        ],
     ],
 
     /*

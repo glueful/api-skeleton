@@ -452,22 +452,6 @@ return [
 
         /*
         |--------------------------------------------------------------------------
-        | Allowed Operators
-        |--------------------------------------------------------------------------
-        |
-        | List of operators that can be used in filters.
-        | Remove operators from this list to disable them globally.
-        |
-        */
-        'allowed_operators' => [
-            'eq', 'ne', 'gt', 'gte', 'lt', 'lte',
-            'contains', 'starts', 'ends',
-            'in', 'nin', 'between',
-            'null', 'not_null',
-        ],
-
-        /*
-        |--------------------------------------------------------------------------
         | Search Driver
         |--------------------------------------------------------------------------
         |
