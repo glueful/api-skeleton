@@ -184,7 +184,7 @@ FORCE_HTTPS=true
 - Clear application cache with `php glueful cache:clear` after config or deployment changes.
 - Enable PHP opcache in production and deploy with Composer's optimized autoloader.
 - Point logs at `storage/logs` or your platform log sink, never under `public/`.
-- Keep `/docs` disabled unless API docs should be public in that environment.
+- Keep `/api-docs` disabled unless API docs should be public in that environment.
 
 ## Testing
 
@@ -203,4 +203,4 @@ Base test case at `tests/TestCase.php` provides framework integration.
 
 - **Database**: SQLite at `storage/database/glueful.sqlite` (zero config)
 - **Queue**: `sync` driver for immediate execution (change to `redis` or `database` in `.env`)
-- **Docs**: API documentation at `/docs` when `API_DOCS_ENABLED=true`
+- **Docs**: API reference at `/api-docs` (`API_DOCS_PATH`) when `API_DOCS_ENABLED=true`
