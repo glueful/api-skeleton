@@ -1,6 +1,6 @@
 # Scaffold Command Guide
 
-Quick reference for generating application code with the Glueful CLI (framework 1.91.1). Every scaffold command accepts `--force` (`-f`) to overwrite, and most accept `--path` (`-p`) for a custom output directory. Run any command with `--help` for its full options, or `php glueful list scaffold` to see them all.
+Quick reference for generating application code with the Glueful CLI (framework 1.91.2). Every scaffold command accepts `--force` (`-f`) to overwrite, and most accept `--path` (`-p`) for a custom output directory. Run any command with `--help` for its full options, or `php glueful list scaffold` to see them all.
 
 Scaffolds write files only — they don't register services or add routes. Where a step is needed, it's listed below.
 
@@ -313,8 +313,7 @@ Post::factory()->count(10)->create();
 ```
 
 Seeders and factories run with the app's context when invoked through `db:seed` or a booted test;
-elsewhere pass one: `Post::factory(10, $context)->create()`. (`db:seed` with an app seeder and
-`Model::factory()->create()` need framework 1.91.2.)
+elsewhere pass one: `Post::factory(10, $context)->create()`.
 
 ## Migrations
 
