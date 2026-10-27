@@ -14,7 +14,7 @@
   "require": {
     "php": "^8.3",
     "glueful/email-notification": "^1.14.0",
-    "glueful/framework": "^1.91.2",
+    "glueful/framework": "^1.91.3",
     "glueful/media": "^1.2.0",
     "glueful/users": "^2.5.0"
   },
@@ -42,7 +42,7 @@
     "key:generate": "php glueful generate:key",
     "test": "vendor/bin/phpunit",
     "test:unit": "vendor/bin/phpunit --testsuite Unit",
-    "test:integration": "vendor/bin/phpunit --testsuite Integration",
+    "test:feature": "vendor/bin/phpunit --testsuite Feature",
     "phpcs": "vendor/bin/phpcs",
     "phpcbf": "vendor/bin/phpcbf",
     "post-create-project-cmd": [

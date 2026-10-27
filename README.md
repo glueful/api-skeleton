@@ -194,7 +194,7 @@ composer test
 
 # Run specific suites
 composer test:unit
-composer test:integration
+composer test:feature
 ```
 
 Base test case at `tests/TestCase.php` provides framework integration.
