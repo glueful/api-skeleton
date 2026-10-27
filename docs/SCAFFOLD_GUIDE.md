@@ -1,6 +1,6 @@
 # Scaffold Command Guide
 
-Quick reference for generating application code with the Glueful CLI (framework 1.91.2). Every scaffold command accepts `--force` (`-f`) to overwrite, and most accept `--path` (`-p`) for a custom output directory. Run any command with `--help` for its full options, or `php glueful list scaffold` to see them all.
+Quick reference for generating application code with the Glueful CLI (framework 1.91.3). Every scaffold command accepts `--force` (`-f`) to overwrite, and most accept `--path` (`-p`) for a custom output directory. Run any command with `--help` for its full options, or `php glueful list scaffold` to see them all.
 
 Scaffolds write files only — they don't register services or add routes. Where a step is needed, it's listed below.
 
@@ -191,9 +191,10 @@ return PostResource::collection($page['data'])->withPaginationFrom($page)->toRes
 ```bash
 php glueful scaffold:job IndexPost
 php glueful scaffold:job SendNewsletter --queue=emails
-php glueful scaffold:job GenerateReport --tries=3 --backoff=60 --timeout=120
-php glueful scaffold:job SyncInventory --unique
+php glueful scaffold:job GenerateReport --tries=5
 ```
+
+`--tries` sets the job's `getMaxAttempts()`; a `'maxAttempts' => N` pushed with the data overrides it, and `queue:work --tries` caps both. Retry delays come from `queue.workers.performance.backoff_*`, and the queue is the third argument to `push()`.
 
 Jobs extend `Glueful\Queue\Job`. Read input with `$this->getData()` and resolve services through `$this->context`:
 
