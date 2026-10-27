@@ -28,5 +28,7 @@ bootstrap/cache/
 /:memory:
 /storage/cache/*
 !/storage/cache/.gitkeep
+# Migration and extension-state lock files (created on first migrate:run / extensions:enable)
+/storage/framework/
 /storage/database/*.sqlite
 !/storage/database/glueful.sqlite
