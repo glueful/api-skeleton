@@ -7,8 +7,8 @@ return [
     |--------------------------------------------------------------------------
     |
     | This option controls the default queue connection that will be used
-    | by the queue system. You may change this value to any of the
-    | connection configurations defined below.
+    | by the queue system: `database` or `redis`, the two drivers the
+    | framework ships.
     |
     */
 

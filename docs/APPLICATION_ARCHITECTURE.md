@@ -1,665 +1,591 @@
 # Application Architecture Guide
 
-This guide describes the recommended application structure for Glueful projects, from simple APIs to complex enterprise applications.
+This guide describes how to grow a Glueful app from a handful of endpoints to a large codebase. Every example targets framework **1.91** and this skeleton's layout (`App\` → `app/`, routes in `routes/*.php`, controllers registered in `App\Providers\AppServiceProvider::services()`).
+
+> Glueful is **not** Laravel. There are no facades and no context-less statics: models, helpers and the container all take an `ApplicationContext` first — `Post::query($context)`, `Post::find($context, $id)`, `Post::create($context, [...])`, `db($context)`, `app($context, X::class)`, `config($context, 'key')`. In a controller the context is `$this->context`; in a job it is `$this->context`; everywhere else, inject `ApplicationContext`.
 
 ## Philosophy
 
-1. **Start minimal** — Add complexity only when needed
-2. **No framework in domain** — Keep business logic portable
-3. **Context-aware DI** — Use `ApplicationContext` injection, no statics
-4. **Single responsibility** — Each class does one thing well
+1. **Start minimal** — add folders only when you feel the pain of not having them
+2. **Context-first, no statics** — pass or inject `ApplicationContext`; prefer constructor injection
+3. **Typed input** — request DTOs validate before your code runs
+4. **Single responsibility** — each class does one thing
 
 ---
 
 ## Starter Structure (< 10 endpoints)
 
-For small APIs, microservices, or prototypes:
+For small APIs, microservices and prototypes:
 
 ```
 app/
-├── Controllers/          # HTTP request handling
-├── Models/               # ORM models with business logic
-└── Providers/            # Service registration
-    └── AppServiceProvider.php
+├── Controllers/          # HTTP handlers (extend Glueful\Controllers\BaseController)
+├── DTOs/                 # Typed request DTOs (php glueful scaffold:dto)
+├── Models/               # ORM models
+└── Providers/
+    └── AppServiceProvider.php   # registers controllers/services
+routes/
+└── api.php               # every routes/*.php file is loaded automatically
 ```
 
-**When to use:** MVPs, internal tools, simple CRUD APIs, webhooks.
+**Model philosophy (Starter):** small business methods on models (`$post->publish()`) are fine. Extract them to Actions as the app grows.
 
-**Model philosophy (Starter):** In small apps, it's practical to keep business logic in models. Methods like `$user->activate()` or `$order->calculateTotal()` are fine here. As your app grows, you'll extract this logic to Actions/Services.
-
-### Example: Simple User API
+### Example: a Post API
 
 ```php
-// app/Controllers/UserController.php
-class UserController extends BaseController
+// app/Models/Post.php
+namespace App\Models;
+
+use Glueful\Database\ORM\Model;
+
+class Post extends Model
 {
-    public function index(): Response
+    protected string $table = 'posts';
+    protected array $fillable = ['title', 'slug', 'body', 'status', 'published_at'];
+    protected array $casts = ['published_at' => 'datetime'];
+
+    public function publish(): void
     {
-        $users = User::query()->paginate();
-        return $this->success($users);
+        // update() = fill + save; DateTimeInterface values are formatted on save
+        $this->update(['status' => 'published', 'published_at' => new \DateTimeImmutable()]);
     }
 
-    public function store(Request $request): Response
+    public function isPublished(): bool
     {
-        // Use controller's validate() method for simple cases
-        $validated = $this->validate($request, [
-            'email' => 'required|email|unique:users',
-            'name' => 'required|string|max:255',
-        ]);
-
-        $user = User::create($validated);
-        return $this->success($user, 201);
-    }
-}
-
-// app/Models/User.php
-class User extends Model
-{
-    protected array $fillable = ['email', 'name', 'password'];
-    protected array $hidden = ['password'];
-
-    // In Starter tier, simple business logic can live in models
-    public function activate(): void
-    {
-        $this->update(['status' => 'active', 'activated_at' => now()]);
-    }
-
-    public function isActive(): bool
-    {
-        return $this->status === 'active';
+        return $this->status === 'published';
     }
 }
 ```
+
+```php
+// app/DTOs/CreatePostData.php — the router validates and hydrates this before store() runs
+namespace App\DTOs;
+
+use Glueful\Validation\Attributes\Rule;
+use Glueful\Validation\Contracts\RequestData;
+
+final class CreatePostData implements RequestData
+{
+    public function __construct(
+        #[Rule('required|string|max:255')]
+        public readonly string $title,
+
+        #[Rule('required|string|max:255|unique:posts,slug')]
+        public readonly string $slug,
+
+        #[Rule('required|string')]
+        public readonly string $body,
+    ) {}
+}
+```
+
+```php
+// app/Controllers/PostController.php
+namespace App\Controllers;
+
+use App\DTOs\CreatePostData;
+use App\Models\Post;
+use Glueful\Controllers\BaseController;
+use Glueful\Http\Response;
+use Symfony\Component\HttpFoundation\Request;
+
+class PostController extends BaseController
+{
+    public function index(Request $request): Response
+    {
+        $page = Post::query($this->context)
+            ->where('status', 'published')
+            ->latest()
+            ->paginate((int) $request->query->get('page', 1), 20);
+
+        // $page['data'] is a Glueful\Database\ORM\Collection of Post models (since 1.91)
+        return $this->success([
+            'items' => $page['data']->toArray(),
+            'total' => $page['total'],
+        ]);
+    }
+
+    public function store(CreatePostData $data): Response
+    {
+        $post = Post::create($this->context, [
+            'title' => $data->title,
+            'slug' => $data->slug,
+            'body' => $data->body,
+            'status' => 'draft',
+        ]);
+
+        return $this->created($post->toArray());
+    }
+}
+```
+
+```php
+// app/Providers/AppServiceProvider.php — the router has no autowire fallback
+\App\Controllers\PostController::class => ['autowire' => true, 'shared' => true],
+```
+
+```php
+// routes/api.php
+$router->group(['prefix' => 'v1'], function (Router $router) {
+    $router->get('/posts', [PostController::class, 'index']);
+    $router->post('/posts', [PostController::class, 'store'])->middleware('auth');
+});
+```
+
+A failed DTO validation returns **422** and the controller never runs. `unique:` / `exists:` are enforced since 1.91 and need the validator's database connection — the DTO path (and `#[Validate]` / `FormRequest`) supplies it. Still back uniqueness with a unique index.
+
+> `BaseController::validateRequest($data, $rules)` is a **legacy** helper that only understands `required`, `email` and `max:N` and ignores everything else (including `unique:`). Don't use it for new code.
 
 ---
 
-## Standard Structure (10-50 endpoints)
-
-For production APIs with moderate complexity:
+## Standard Structure (10–50 endpoints)
 
 ```
 app/
 ├── Actions/              # Single-purpose use cases (primary orchestrators)
 ├── Controllers/          # Thin HTTP layer
-├── DTO/                  # Request validation + response shapes
-├── Events/               # Domain events
+├── DTOs/                 # Request DTOs (RequestData) and response DTOs (ResponseData)
+├── Events/               # Domain events (extend Glueful\Events\Contracts\BaseEvent)
+│   └── Listeners/        # #[AsListener] classes (php glueful event:listener)
 ├── Exceptions/           # Application exceptions
-├── Jobs/                 # Async/queued work
-├── Middleware/           # App-specific middleware
+├── Http/
+│   ├── Middleware/       # RouteMiddleware implementations (scaffold:middleware)
+│   └── Resources/        # JsonResource / ModelResource transformers (scaffold:resource)
+├── Jobs/                 # Queued work (extend Glueful\Queue\Job)
 ├── Models/               # ORM models (thinner than Starter)
-├── Policies/             # Authorization rules
+├── Policies/             # Authorization rules (Glueful\Permissions\PolicyInterface)
 ├── Providers/            # Service registration
 └── Support/              # Helpers, value objects
 ```
 
-**When to upgrade:**
-- Controllers exceed ~100 lines
-- Same logic appears in multiple places
-- You need async processing (Jobs)
-- Authorization becomes complex (Policies)
-- You want typed request/response objects (DTO)
+**When to upgrade:** controllers pass ~100 lines, the same logic appears in several places, you need async work, or authorization gets complex.
 
-**Model philosophy (Standard):** Extract business logic from models to Actions. Models become thinner, focused on persistence concerns (relationships, scopes, casts). Actions orchestrate use cases.
+**Model philosophy (Standard):** move business logic into Actions. Models keep persistence concerns: relationships, scopes, casts.
 
 ### Layer Responsibilities
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                     INTERFACE LAYER                          │
-│   Controllers, Middleware, DTO (requests/responses)          │
-│   - Receives HTTP requests                                   │
-│   - Validates input                                          │
-│   - Calls Actions                                            │
-│   - Returns responses                                        │
+│ INTERFACE    Controllers, Middleware, DTOs, Resources        │
+│              receive HTTP, validate (DTOs), call Actions,    │
+│              shape responses                                 │
 └─────────────────────────────────────────────────────────────┘
                               │
-                              ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                    APPLICATION LAYER                         │
-│   Actions, Jobs, Events, Policies                            │
-│   - Orchestrates use cases                                   │
-│   - Coordinates domain objects                               │
-│   - Handles authorization                                    │
-│   - Dispatches events/jobs                                   │
+│ APPLICATION  Actions, Jobs, Events/Listeners, Policies       │
+│              orchestrate use cases, dispatch events/jobs     │
 └─────────────────────────────────────────────────────────────┘
                               │
-                              ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                      DOMAIN LAYER                            │
-│   Models, Support (value objects)                            │
-│   - Data persistence and relationships                       │
-│   - No framework dependencies in Support/                    │
-│   - Pure PHP objects where possible                          │
+│ DOMAIN       Models, Support (value objects)                 │
+│              persistence; Support/ stays framework-free      │
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Key Concepts
+**Actions** have one public method (`execute()`), are named after what they do (`CreatePostAction`), and coordinate models and side effects. **Services** (Enterprise tier) hold framework-free logic shared by several Actions.
 
-#### Actions vs Services
-
-**Actions** are the primary pattern for use-case orchestration:
-- One public method: `execute()`
-- Named after what they do: `CreateUserAction`, `ProcessPaymentAction`
-- Coordinate multiple domain objects and side effects
-
-**Services** (added in Enterprise tier) are for pure domain logic shared across multiple Actions:
-- Stateless, framework-free business rules
-- Example: `PricingService::calculateDiscount()` used by multiple Actions
-- Only add when you have shared logic; Actions are sufficient for most apps
-
-#### Validation: DTO Pattern
-
-Place validation in `DTO/` as request classes. This is the recommended default:
+### Example: Post creation flow
 
 ```php
-// app/DTO/CreateUserData.php
-class CreateUserData
+// app/Events/PostCreatedEvent.php
+namespace App\Events;
+
+use Glueful\Events\Contracts\BaseEvent;
+
+class PostCreatedEvent extends BaseEvent
 {
-    public function __construct(
-        public readonly string $email,
-        public readonly string $name,
-        public readonly string $password,
-    ) {}
-
-    public static function rules(): array
+    public function __construct(public readonly int $postId)
     {
-        return [
-            'email' => 'required|email|unique:users',
-            'name' => 'required|string|max:255',
-            'password' => 'required|string|min:8|confirmed',
-        ];
-    }
-
-    public static function fromArray(array $data): self
-    {
-        return new self(
-            email: $data['email'],
-            name: $data['name'],
-            password: $data['password'],
-        );
+        parent::__construct();
     }
 }
 ```
 
-### Example: User Registration Flow (Context-Aware)
-
 ```php
-// app/DTO/CreateUserData.php
-class CreateUserData
-{
-    public function __construct(
-        public readonly string $email,
-        public readonly string $name,
-        public readonly string $password,
-    ) {}
+// app/Actions/CreatePostAction.php
+namespace App\Actions;
 
-    public static function rules(): array
-    {
-        return [
-            'email' => 'required|email|unique:users',
-            'name' => 'required|string|max:255',
-            'password' => 'required|string|min:8|confirmed',
-        ];
-    }
-
-    public static function fromArray(array $data): self
-    {
-        return new self(
-            email: $data['email'],
-            name: $data['name'],
-            password: $data['password'],
-        );
-    }
-}
-
-// app/Actions/CreateUserAction.php
+use App\DTOs\CreatePostData;
+use App\Events\PostCreatedEvent;
+use App\Jobs\IndexPostJob;
+use App\Models\Post;
 use Glueful\Bootstrap\ApplicationContext;
 use Glueful\Events\EventService;
 use Glueful\Queue\QueueManager;
 
-class CreateUserAction
+final class CreatePostAction
 {
-    // Preferred: Inject services directly via constructor
-    // Alternative: Use app($this->context, ServiceClass::class) for convenience
     public function __construct(
         private readonly ApplicationContext $context,
         private readonly EventService $events,
         private readonly QueueManager $queue,
     ) {}
 
-    public function execute(CreateUserData $data): User
+    public function execute(CreatePostData $data): Post
     {
-        // Business logic extracted from controller
-        $user = User::create([
-            'email' => $data->email,
-            'name' => $data->name,
-            'password' => password_hash($data->password, PASSWORD_DEFAULT),
-            'status' => 'pending',
+        $post = Post::create($this->context, [
+            'title' => $data->title,
+            'slug' => $data->slug,
+            'body' => $data->body,
+            'status' => 'draft',
         ]);
 
-        // Dispatch event via injected EventService
-        $this->events->dispatch(new UserCreatedEvent($user));
+        $this->events->dispatch(new PostCreatedEvent($post->id));
 
-        // Queue welcome email via injected QueueManager
-        $this->queue->push(SendWelcomeEmailJob::class, ['user_id' => $user->id]);
+        // push(jobClass, data, ?queue, ?connection) — only the class name + array are stored
+        $this->queue->push(IndexPostJob::class, ['post_id' => $post->id]);
 
-        return $user;
-    }
-}
-
-// app/Controllers/UserController.php
-class UserController extends BaseController
-{
-    public function __construct(
-        private readonly CreateUserAction $createUser
-    ) {}
-
-    public function store(Request $request): Response
-    {
-        // Validate using DTO rules
-        $validated = $this->validate($request, CreateUserData::rules());
-
-        // Create typed DTO from validated data (not raw request)
-        $data = CreateUserData::fromArray($validated);
-
-        // Execute action
-        $user = $this->createUser->execute($data);
-
-        return $this->success(UserResource::make($user), 201);
-    }
-}
-
-// app/Events/UserCreatedEvent.php
-use Glueful\Events\BaseEvent;
-
-class UserCreatedEvent extends BaseEvent
-{
-    public function __construct(
-        public readonly User $user
-    ) {
-        parent::__construct();
-    }
-}
-
-// app/Jobs/SendWelcomeEmailJob.php
-use Glueful\Queue\Job;
-use Glueful\Bootstrap\ApplicationContext;
-
-class SendWelcomeEmailJob extends Job
-{
-    protected ?ApplicationContext $context;
-
-    public function __construct(array $data = [], ?ApplicationContext $context = null)
-    {
-        parent::__construct($data);
-        $this->context = $context;
-    }
-
-    public function handle(): void
-    {
-        $data = $this->getData();
-        $user = User::find($data['user_id']);
-
-        // Use context for any framework services
-        if ($this->context !== null) {
-            $mailer = app($this->context, MailerInterface::class);
-            $mailer->send($user->email, 'welcome', ['user' => $user]);
-        }
+        return $post;
     }
 }
 ```
+
+```php
+// app/Controllers/PostController.php
+namespace App\Controllers;
+
+use App\Actions\CreatePostAction;
+use App\DTOs\CreatePostData;
+use App\Http\Resources\PostResource;
+use Glueful\Bootstrap\ApplicationContext;
+use Glueful\Controllers\BaseController;
+use Glueful\Http\Response;
+
+class PostController extends BaseController
+{
+    // Overriding the constructor? Take the context and call the parent.
+    public function __construct(
+        ApplicationContext $context,
+        private readonly CreatePostAction $createPost,
+    ) {
+        parent::__construct($context);
+    }
+
+    public function store(CreatePostData $data): Response
+    {
+        $post = $this->createPost->execute($data);
+
+        return PostResource::make($post)->toResponse(201);
+    }
+}
+```
+
+```php
+// app/Http/Resources/PostResource.php (php glueful scaffold:resource PostResource --model)
+namespace App\Http\Resources;
+
+use Glueful\Http\Resources\ModelResource;
+
+class PostResource extends ModelResource
+{
+    public function toArray(): array
+    {
+        return [
+            'id' => $this->attribute('id'),
+            'title' => $this->attribute('title'),
+            'slug' => $this->attribute('slug'),
+            'status' => $this->attribute('status'),
+        ];
+    }
+}
+// List endpoints: PostResource::collection($page['data'])->withPaginationFrom($page)->toResponse()
+```
+
+```php
+// app/Jobs/IndexPostJob.php — the worker builds the job with your data and the app context
+namespace App\Jobs;
+
+use App\Models\Post;
+use Glueful\Queue\Job;
+use Psr\Log\LoggerInterface;
+
+class IndexPostJob extends Job
+{
+    public function handle(): void
+    {
+        $post = Post::find($this->context, $this->getData()['post_id']);
+        if ($post === null) {
+            return;
+        }
+
+        // ... push to the search index
+        app($this->context, LoggerInterface::class)->info('Post indexed', ['id' => $post->id]);
+    }
+}
+```
+
+```php
+// app/Events/Listeners/PostAuditListener.php
+namespace App\Events\Listeners;
+
+use App\Events\PostCreatedEvent;
+use Glueful\Events\Attributes\AsListener;
+use Psr\Log\LoggerInterface;
+
+final class PostAuditListener
+{
+    public function __construct(private readonly LoggerInterface $logger) {}
+
+    #[AsListener(PostCreatedEvent::class)]
+    public function onCreated(PostCreatedEvent $event): void
+    {
+        $this->logger->info('Post created', ['id' => $event->postId]);
+    }
+}
+```
+
+Wire it together. Controllers and the classes they depend on are registered in `services()`; listeners are subscribed at boot (there is no directory scanning and no listener map in `config/events.php`):
+
+```php
+// app/Providers/AppServiceProvider.php
+public static function services(): array
+{
+    return [
+        \App\Controllers\PostController::class => ['autowire' => true, 'shared' => true],
+        \App\Actions\CreatePostAction::class => ['autowire' => true],
+    ];
+}
+```
+
+```php
+// app/Providers/EventServiceProvider.php — add 'App\\Providers\\EventServiceProvider' to config/serviceproviders.php
+namespace App\Providers;
+
+use App\Events\Listeners\PostAuditListener;
+use Glueful\Bootstrap\ApplicationContext;
+use Glueful\Events\EventService;
+use Glueful\Extensions\ServiceProvider;
+
+final class EventServiceProvider extends ServiceProvider
+{
+    public static function services(): array
+    {
+        return [];
+    }
+
+    public function boot(ApplicationContext $context): void
+    {
+        // subscribe() reads #[AsListener] (and/or EventSubscriberInterface); a class it can't build throws here
+        app($context, EventService::class)->subscribe(PostAuditListener::class);
+    }
+}
+```
+
+Listeners run synchronously inside `dispatch()` and failures are isolated (logged, other listeners still run). Push slow work to a job.
 
 ---
 
 ## Enterprise Structure (50+ endpoints)
 
-For large applications with complex domains:
-
 ```
 app/
-├── Actions/              # Use case orchestration
-├── Controllers/          # HTTP layer
-├── DTO/
-│   ├── Requests/         # Incoming data shapes
-│   └── Responses/        # Outgoing data shapes (Resources)
+├── Actions/
+├── Controllers/
+├── DTOs/
+│   ├── Requests/         # RequestData classes
+│   └── Responses/        # ResponseData classes
 ├── Events/
-│   └── Listeners/        # Event handlers
+│   └── Listeners/
 ├── Exceptions/
 │   ├── Domain/           # Business rule violations
-│   └── Application/      # Application-level errors
-├── Jobs/                 # Async processing
-├── Middleware/           # Request/response middleware
-├── Models/               # ORM models (thin - persistence only)
-├── Policies/             # Authorization
-├── Providers/            # DI configuration
+│   └── Application/
+├── Filters/              # QueryFilter classes (scaffold:filter)
+├── Http/
+│   ├── Middleware/
+│   └── Resources/
+├── Jobs/
+├── Models/               # Thin — persistence only
+├── Policies/
+├── Providers/
 ├── Repositories/         # Data access abstraction
-├── Services/             # Domain services (shared business logic)
+├── Services/             # Shared, framework-free domain logic
 ├── Support/
-│   ├── Constants/        # Application constants
-│   ├── Helpers/          # Utility functions
-│   └── ValueObjects/     # Immutable domain objects
-└── Validators/           # Complex, reusable validation rules
+│   ├── Constants/
+│   ├── Helpers/
+│   └── ValueObjects/
+└── Validation/
+    └── Rules/            # Custom rules, usable by name in #[Rule('...')]
 ```
 
-**When to upgrade:**
-- Multiple data sources (API + DB + cache)
-- Complex domain logic that spans multiple models
-- Need to swap persistence implementations
-- Multiple teams working on same codebase
-- Strict testing requirements (mock repositories)
+**When to upgrade:** multiple data sources, domain logic spanning many models, swappable persistence, several teams, strict testing needs.
 
-**Model philosophy (Enterprise):** Models are thin — only persistence concerns (relationships, scopes, attribute casting). All business logic lives in Actions (orchestration) and Services (shared domain logic). Repositories abstract data access for testability.
+**Model philosophy (Enterprise):** models are persistence only. Actions orchestrate, Services hold shared domain rules, Repositories abstract data access.
 
-### When to Add Each Component
-
-| Component | Add When... |
-|-----------|-------------|
-| **Repositories/** | You need to abstract data access, swap implementations, or have complex queries that should be testable in isolation |
-| **Services/** | Business logic is shared by multiple Actions and is framework-free (e.g., `PricingService`, `TaxCalculator`) |
-| **Validators/** | Validation rules are complex and reused across multiple DTOs (e.g., `UniqueEmailRule`, `PhoneNumberRule`) |
-| **DTO/Responses/** | You need versioned or heavily transformed API responses |
-| **ValueObjects/** | You have domain concepts that deserve their own type (Money, Email, DateRange, Address) |
+| Component | Add when… |
+|-----------|-----------|
+| **Repositories/** | You need to swap implementations or test complex queries in isolation |
+| **Services/** | Framework-free logic is shared by several Actions (`PricingService`) |
+| **Validation/Rules/** | A rule is reused across DTOs. A class `App\Validation\Rules\Slug` implementing `Glueful\Validation\Contracts\Rule` is usable as `#[Rule('required\|slug')]` |
+| **DTOs/Responses/** | You want a typed response contract (`ResponseData`, `CollectionResponse`, `PaginatedResponse`) that also drives the OpenAPI schema |
+| **Support/ValueObjects/** | A domain concept deserves its own type (Money, Email, DateRange) |
 
 ### Repository Example
 
 ```php
-// app/Repositories/Contracts/UserRepositoryInterface.php
-interface UserRepositoryInterface
+// app/Repositories/Contracts/PostRepositoryInterface.php
+interface PostRepositoryInterface
 {
-    public function findById(string $id): ?User;
-    public function findByEmail(string $email): ?User;
-    public function save(User $user): void;
-    public function delete(User $user): void;
-    public function activeUsers(): Collection;
+    public function findBySlug(string $slug): ?Post;
+    public function published(int $page, int $perPage): array;
+    public function save(Post $post): void;
 }
 
-// app/Repositories/EloquentUserRepository.php
-class EloquentUserRepository implements UserRepositoryInterface
+// app/Repositories/OrmPostRepository.php
+use Glueful\Bootstrap\ApplicationContext;
+
+final class OrmPostRepository implements PostRepositoryInterface
 {
-    public function findById(string $id): ?User
+    public function __construct(private readonly ApplicationContext $context) {}
+
+    public function findBySlug(string $slug): ?Post
     {
-        return User::find($id);
+        return Post::query($this->context)->where('slug', $slug)->first();
     }
 
-    public function findByEmail(string $email): ?User
+    public function published(int $page, int $perPage): array
     {
-        return User::query()->where('email', $email)->first();
+        return Post::query($this->context)
+            ->where('status', 'published')
+            ->latest()
+            ->paginate($page, $perPage);   // ['data' => Collection<Post>, 'total' => ..., ...]
     }
 
-    public function activeUsers(): Collection
+    public function save(Post $post): void
     {
-        return User::query()
-            ->where('status', 'active')
-            ->orderBy('created_at', 'desc')
-            ->get();
-    }
-
-    public function save(User $user): void
-    {
-        $user->save();
-    }
-
-    public function delete(User $user): void
-    {
-        $user->delete();
+        $post->save();
     }
 }
 
-// app/Providers/RepositoryServiceProvider.php
-class RepositoryServiceProvider extends ServiceProvider
-{
-    public static function services(): array
-    {
-        return [
-            UserRepositoryInterface::class => [
-                'class' => EloquentUserRepository::class,
-                'shared' => true,
-            ],
-        ];
-    }
-}
+// app/Providers/AppServiceProvider.php — bind the interface via alias
+\App\Repositories\OrmPostRepository::class => [
+    'autowire' => true,
+    'alias' => \App\Repositories\Contracts\PostRepositoryInterface::class,
+],
 ```
+
+For table-oriented (non-ORM) repositories the framework also ships `Glueful\Repository\BaseRepository` — see the framework docs: Advanced → Repositories.
 
 ### Service Example (Domain Logic)
 
 ```php
-// app/Services/PricingService.php
-// Pure domain logic, no framework dependencies
-class PricingService
+// app/Services/PricingService.php — plain PHP, no framework types
+final class PricingService
 {
-    public function calculateOrderTotal(array $items, ?string $couponCode = null): Money
+    public function orderTotal(array $items, ?string $couponCode = null): Money
     {
-        $subtotal = $this->calculateSubtotal($items);
-        $discount = $this->calculateDiscount($subtotal, $couponCode);
-        $tax = $this->calculateTax($subtotal->subtract($discount));
-
-        return $subtotal->subtract($discount)->add($tax);
-    }
-
-    private function calculateSubtotal(array $items): Money
-    {
-        return array_reduce(
+        $subtotal = array_reduce(
             $items,
-            fn(Money $total, array $item) => $total->add(
-                Money::of($item['price'])->multiply($item['quantity'])
-            ),
-            Money::zero()
+            fn (Money $total, array $item) => $total->add(Money::of($item['price'])->multiply($item['quantity'])),
+            Money::zero(),
         );
+
+        return $subtotal->subtract($this->discount($subtotal, $couponCode));
     }
 
     // ...
 }
-
-// Used by multiple Actions:
-// - CreateOrderAction
-// - UpdateOrderAction
-// - PreviewOrderAction
 ```
 
 ---
 
 ## Model Philosophy Progression
 
-This is an **intentional progression** as your app grows:
-
-| Tier | Model Responsibility | Business Logic Location |
+| Tier | Model responsibility | Business logic lives in |
 |------|---------------------|------------------------|
-| **Starter** | Persistence + simple business logic | In models (`$user->activate()`) |
-| **Standard** | Persistence + relationships + scopes | Actions orchestrate, models are thinner |
-| **Enterprise** | Persistence only (thin) | Actions orchestrate, Services for shared logic |
-
-**Why this progression?**
-- Starter: Fast iteration, fewer files, acceptable coupling
-- Standard: Better testability, clearer use cases, manageable complexity
-- Enterprise: Maximum testability, team scalability, swappable implementations
+| **Starter** | Persistence + simple behaviour | Models (`$post->publish()`) |
+| **Standard** | Persistence + relationships + scopes | Actions |
+| **Enterprise** | Persistence only | Actions + Services, data access via Repositories |
 
 ---
 
 ## Naming Conventions
 
-### Actions
-Name after the use case in verb form:
-```
-CreateUserAction
-UpdateUserProfileAction
-ProcessPaymentAction
-SendPasswordResetAction
-```
-
-### Jobs
-Name after the work being done:
-```
-SendWelcomeEmailJob
-ProcessOrderJob
-GenerateReportJob
-SyncInventoryJob
-```
-
-### Events
-Name after what happened (past tense):
-```
-UserCreatedEvent
-OrderShippedEvent
-PaymentFailedEvent
-PasswordResetRequestedEvent
-```
-
-### DTOs
-Name after the data they represent:
-```
-CreateUserData
-UpdateProfileData
-OrderSummary
-PaginatedUsers
-```
-
-### Services (Enterprise)
-Name after the domain capability:
-```
-PricingService
-TaxCalculationService
-InventoryService
-NotificationService
-```
-
-### Policies
-Name after the model they protect:
-```
-UserPolicy
-OrderPolicy
-CommentPolicy
-```
+| Kind | Convention | Examples |
+|------|-----------|----------|
+| Actions | verb + noun + `Action` | `CreatePostAction`, `ProcessPaymentAction` |
+| Jobs | the work being done | `IndexPostJob`, `SendWelcomeEmail` |
+| Events | past tense + `Event` (`event:create` adds the suffix) | `PostCreatedEvent`, `PaymentFailedEvent` |
+| Listeners | action + `Listener` (`event:listener` adds the suffix) | `PostAuditListener` |
+| Request DTOs | intent + `Data` | `CreatePostData`, `UpdateProfileData` |
+| Response DTOs | resource + `Data` | `PostData`, `AuthorData` |
+| Services | domain capability | `PricingService`, `InventoryService` |
+| Policies | protected model + `Policy` | `PostPolicy`, `OrderPolicy` |
 
 ---
 
 ## Directory Creation Commands
 
-### Upgrade from Starter to Standard
 ```bash
-mkdir -p app/{Actions,DTO,Events,Exceptions,Jobs,Middleware,Policies,Support}
-```
+# Starter → Standard
+mkdir -p app/{Actions,DTOs,Events/Listeners,Exceptions,Http/Middleware,Http/Resources,Jobs,Policies,Support}
 
-### Upgrade from Standard to Enterprise
-```bash
-mkdir -p app/DTO/{Requests,Responses}
-mkdir -p app/Events/Listeners
+# Standard → Enterprise
+mkdir -p app/DTOs/{Requests,Responses}
 mkdir -p app/Exceptions/{Domain,Application}
 mkdir -p app/Support/{Constants,Helpers,ValueObjects}
-mkdir -p app/{Repositories,Services,Validators}
+mkdir -p app/{Filters,Repositories,Services,Validation/Rules}
 ```
+
+Most scaffold commands create their directory on first use; see [SCAFFOLD_GUIDE.md](SCAFFOLD_GUIDE.md).
 
 ---
 
 ## Anti-Patterns to Avoid
 
-### 1. Fat Controllers
+### 1. Fat controllers
+
 ```php
-// BAD: Controller doing too much
-class UserController extends BaseController
-{
-    public function store(Request $request): Response
-    {
-        // Validation, business logic, email sending, event dispatch...
-        // 200 lines of code
-    }
-}
+// BAD: validation, business logic, email, events — 200 lines in store()
 
-// GOOD: Controller delegates to Action
-class UserController extends BaseController
+// GOOD: a typed DTO validates, an Action does the work
+public function store(CreatePostData $data): Response
 {
-    public function __construct(
-        private readonly CreateUserAction $createUser
-    ) {}
-
-    public function store(Request $request): Response
-    {
-        $validated = $this->validate($request, CreateUserData::rules());
-        $user = $this->createUser->execute(CreateUserData::fromRequest($request));
-        return $this->success(UserResource::make($user), 201);
-    }
+    return PostResource::make($this->createPost->execute($data))->toResponse(201);
 }
 ```
 
-### 2. Framework Types in Domain
+### 2. Laravel-style statics
 
 ```php
-// BAD: Domain depends on framework
-class OrderService
-{
-    public function calculateTotal(Request $request): Response  // Framework types!
-    {
-        // ...
-    }
-}
-
-// GOOD: Domain uses plain PHP
-class OrderService
-{
-    public function calculateTotal(array $items): Money  // Plain PHP
-    {
-        // ...
-    }
-}
-```
-
-### 3. Missing Context in Actions
-
-```php
-// BAD: Global functions without context (hard to test)
-class CreateUserAction
-{
-    public function execute(array $data): void
-    {
-        $setting = config('app.setting');           // Missing context!
-        // Static facade that doesn't exist in Glueful
-    }
-}
-
-// GOOD: Inject dependencies directly (preferred)
-use Glueful\Bootstrap\ApplicationContext;
-use Glueful\Events\EventService;
-use Glueful\Queue\QueueManager;
-
-class CreateUserAction
-{
-    public function __construct(
-        private readonly ApplicationContext $context,
-        private readonly EventService $events,
-        private readonly QueueManager $queue,
-    ) {}
-
-    public function execute(array $data): void
-    {
-        // Config still needs context
-        $setting = config($this->context, 'app.setting');
-
-        // Injected services - clean and testable
-        $this->events->dispatch(new UserCreated($user));
-        $this->queue->push(SendEmailJob::class, ['user_id' => $user->id]);
-    }
-}
-```
-
-### 4. Premature Abstraction
-
-```php
-// BAD: Repository for simple CRUD in a small app
-interface UserRepositoryInterface { /* 10 methods */ }
-class EloquentUserRepository implements UserRepositoryInterface { /* 200 lines */ }
-
-// When all you need (in Starter tier) is:
+// BAD — none of these exist in Glueful
 User::find($id);
-User::create($data);
+Post::create($data);
+DB::transaction(fn () => ...);
+config('app.name');
+$this->validate($request, ['email' => 'required|email|unique:users']);
+
+// GOOD
+Post::find($this->context, $id);
+Post::create($this->context, $data);
+db($this->context)->transaction(fn () => ...);
+config($this->context, 'app.name');
+public function store(CreatePostData $data): Response   // validation via a request DTO
 ```
+
+### 3. Framework types in the domain
+
+```php
+// BAD
+class PricingService { public function total(Request $request): Response { /* ... */ } }
+
+// GOOD
+class PricingService { public function total(array $items): Money { /* ... */ } }
+```
+
+### 4. Premature abstraction
+
+A repository interface plus implementation for simple CRUD in a small app is overhead. In the Starter tier, `Post::find($this->context, $id)` and `Post::create($this->context, $data)` are enough.
 
 ---
 
 ## Quick Reference
 
-| Project Size | Folders | Key Patterns |
-|--------------|---------|--------------|
-| **Starter** | 3 | Models with business logic, controller validation |
-| **Standard** | 11 | Actions for use cases, DTOs for validation, Events for side effects |
-| **Enterprise** | 15+ | Repositories for data access, Services for shared domain logic |
+| Size | Key patterns |
+|------|--------------|
+| **Starter** | Controllers + request DTOs + models with light behaviour |
+| **Standard** | Actions for use cases, events/listeners and jobs for side effects, resources for output |
+| **Enterprise** | Repositories, Services, response DTOs, custom rules |
 
-**Rule of thumb:** If you're unsure whether to add a folder, don't. Add it when you feel the pain of not having it.
+**Rule of thumb:** if you're unsure whether to add a folder, don't.
+
+Further reading in the framework docs: Essentials → Controllers, ORM, Validation, Typed Requests & Responses; Features → Events & Listeners, Queues & Jobs; Advanced → Dependency Injection, Service Providers, Repositories, Testing.

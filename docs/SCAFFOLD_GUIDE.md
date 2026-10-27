@@ -1,402 +1,373 @@
 # Scaffold Command Guide
 
-Quick reference for generating application components using the Glueful CLI.
+Quick reference for generating application code with the Glueful CLI (framework 1.91.2). Every scaffold command accepts `--force` (`-f`) to overwrite, and most accept `--path` (`-p`) for a custom output directory. Run any command with `--help` for its full options, or `php glueful list scaffold` to see them all.
+
+Scaffolds write files only — they don't register services or add routes. Where a step is needed, it's listed below.
+
+| Command | Default output (this skeleton) | Namespace |
+|---------|-------------------------------|-----------|
+| `scaffold:controller` | `app/Controllers/` | `App\Controllers` |
+| `scaffold:dto` | `app/DTOs/` | `App\DTOs` |
+| `scaffold:request` | `app/Http/Requests/` | `App\Http\Requests` |
+| `scaffold:resource` | `app/Http/Resources/` | `App\Http\Resources` |
+| `scaffold:middleware` | `app/Http/Middleware/` | `App\Http\Middleware` |
+| `scaffold:job` | `app/Jobs/` | `App\Jobs` |
+| `scaffold:rule` | `app/Validation/Rules/` | `App\Validation\Rules` |
+| `scaffold:filter` | `app/Filters/` | `App\Filters` |
+| `scaffold:model` | `app/Models/` | `App\Models` |
+| `scaffold:test` | `tests/Unit/` or `tests/Feature/` | `App\Tests\Unit` / `App\Tests\Feature` |
+| `scaffold:factory` / `scaffold:seeder` | `app/Database/Factories/` / `app/Database/Seeders/` | `App\Database\Factories` / `App\Database\Seeders` |
+| `event:create` / `event:listener` | `app/Events/` / `app/Events/Listeners/` | `App\Events` / `App\Events\Listeners` |
 
 ## Controllers
 
 ```bash
-# Basic controller
-php glueful scaffold:controller UserController
+php glueful scaffold:controller PostController             # index, show
+php glueful scaffold:controller PostController --resource  # index, create, store, show, edit, update, destroy
+php glueful scaffold:controller PostController --api       # index, show, store, update, destroy
+```
 
-# Resource controller (index, show, store, update, destroy)
-php glueful scaffold:controller UserController --resource
+The class extends `Glueful\Controllers\BaseController` and lands in `app/Controllers` under `App\Controllers`. The command prints its next steps, including the registration line. **Add it to `App\Providers\AppServiceProvider::services()`** — the router resolves controllers from the container and has no autowire fallback, so an unregistered controller fails with "Service not found":
 
-# API controller (resource without create/edit views)
-php glueful scaffold:controller UserController --api
+```php
+// app/Providers/AppServiceProvider.php
+public static function services(): array
+{
+    return [
+        \App\Controllers\WelcomeController::class => ['autowire' => true, 'shared' => true],
+        \App\Controllers\PostController::class => ['autowire' => true, 'shared' => true],
+    ];
+}
+```
+
+Then add routes in `routes/api.php` (every `routes/*.php` file is loaded automatically):
+
+```php
+$router->group(['prefix' => 'v1'], function (Router $router) {
+    $router->get('/posts', [PostController::class, 'index']);
+    $router->post('/posts', [PostController::class, 'store'])->middleware('auth');
+});
 ```
 
 ### Attribute-Based Routing
 
-Instead of defining routes in `routes/api.php`, you can use PHP attributes directly on controller classes and methods:
+Instead of route files, put attributes on the controller. Controllers in `app/Controllers/` are **scanned automatically at boot** — no loader to register — but they still need the `services()` entry above. Attribute routes are not API-prefixed, so put the full prefix in `#[Controller]`.
 
 ```php
 <?php
 
 namespace App\Controllers;
 
+use App\DTOs\CreatePostData;
+use App\Models\Post;
 use Glueful\Controllers\BaseController;
-use Glueful\Routing\Attributes\{Controller, Get, Post, Put, Delete, Middleware};
 use Glueful\Http\Response;
+use Glueful\Routing\Attributes\{Controller, Delete, Get, Middleware, Post as PostRoute};
 
-#[Controller(prefix: '/users', middleware: ['auth'])]
-class UserController extends BaseController
+#[Controller(prefix: '/v1/posts', middleware: ['auth'])]
+class PostController extends BaseController
 {
     #[Get('/')]
     public function index(): Response
     {
-        return $this->success(User::all());
+        $page = Post::query($this->context)->latest()->paginate(1, 20);
+
+        return $this->success($page['data']->toArray());   // 'data' is an ORM Collection of models
     }
 
     #[Get('/{id}', where: ['id' => '\d+'])]
     public function show(int $id): Response
     {
-        return $this->success(User::find($id));
+        return $this->success(Post::findOrFail($this->context, $id)->toArray());   // 404 when missing
     }
 
-    #[Post('/')]
-    public function store(Request $request): Response
+    #[PostRoute('/')]
+    public function store(CreatePostData $data): Response   // validated before this runs (422 on failure)
     {
-        $user = User::create($request->request->all());
-        return $this->success($user, 201);
+        $post = Post::create($this->context, [
+            'title' => $data->title,
+            'slug' => $data->slug,
+            'body' => $data->body,
+        ]);
+
+        return $this->created($post->toArray());
     }
 
-    #[Put('/{id}')]
-    public function update(Request $request, int $id): Response
-    {
-        $user = User::find($id);
-        $user->update($request->request->all());
-        return $this->success($user);
-    }
-
-    #[Delete('/{id}')]
-    #[Middleware(['admin'])]  // Method-level middleware
+    #[Delete('/{id}', where: ['id' => '\d+'])]
+    #[Middleware('admin')]   // method-level middleware (an alias you have registered)
     public function destroy(int $id): Response
     {
-        User::find($id)->delete();
-        return $this->success(null, 204);
+        Post::findOrFail($this->context, $id)->delete();
+
+        return $this->success(null, 'Deleted');
     }
 }
 ```
 
-**Available Attributes:**
+| Attribute | Target | Parameters |
+|-----------|--------|------------|
+| `#[Controller]` | Class | `prefix`, `middleware` |
+| `#[Get]`, `#[Post]`, `#[Put]`, `#[Patch]`, `#[Delete]`, `#[Options]` | Method | `path`, `name`, `where` |
+| `#[Route]` | Method | `path`, `methods`, `name`, `middleware`, `where` |
+| `#[Middleware]` | Class/Method | a string or array of middleware |
+| `#[Fields]` | Method | `allowed`, `strict`, … (attaches `field_selection`) |
+| `#[RequireScope]` | Method | scope string (attaches `require_scope`) |
+| `#[ResponseStatus]` | Method | 2xx status for a returned `ResponseData` |
+| `#[RateLimit]` (`Glueful\Api\RateLimiting\Attributes`) | Class/Method | `attempts`, `perMinutes`/`perHours`/`perDays`, … (attaches `rate_limit`) |
 
-| Attribute | Target | Parameters | Example |
-|-----------|--------|------------|---------|
-| `#[Controller]` | Class | `prefix`, `middleware[]` | `#[Controller(prefix: '/api/users')]` |
-| `#[Get]` | Method | `path`, `name`, `where[]` | `#[Get('/{id}', where: ['id' => '\d+'])]` |
-| `#[Post]` | Method | `path`, `name`, `where[]` | `#[Post('/')]` |
-| `#[Put]` | Method | `path`, `name`, `where[]` | `#[Put('/{id}')]` |
-| `#[Delete]` | Method | `path`, `name`, `where[]` | `#[Delete('/{id}')]` |
-| `#[Middleware]` | Class/Method | `middleware[]` | `#[Middleware(['auth', 'throttle'])]` |
-| `#[Fields]` | Method | `allowed[]`, `strict` | `#[Fields(allowed: ['id', 'name'])]` |
-
-**Enabling Attribute Scanning:**
-
-Register the `AttributeRouteLoader` in your service provider to scan controllers:
-
-```php
-// app/Providers/AppServiceProvider.php
-use Glueful\Routing\AttributeRouteLoader;
-use Glueful\Routing\Router;
-
-public function boot(ApplicationContext $context): void
-{
-    $router = $this->app->get(Router::class);
-    $loader = new AttributeRouteLoader($router);
-
-    // Scan your controllers directory
-    $loader->scanDirectory(base_path($context, 'app/Controllers'));
-}
-```
-
-> **Note:** File-based routing in `routes/api.php` and attribute-based routing can be used together. Use whichever approach fits your preference.
+All are in `Glueful\Routing\Attributes` unless noted. File routes and attribute routes can be mixed.
 
 ## Models
 
 ```bash
-# Basic model
-php glueful scaffold:model User
-
-# Model with migration
-php glueful scaffold:model User --migration
-
-# Model with fillable fields
-php glueful scaffold:model User --fillable=name,email,password
-
-# Model with soft deletes
-php glueful scaffold:model User --soft-deletes
-
-# Full example
-php glueful scaffold:model User --migration --fillable=name,email --soft-deletes
+php glueful scaffold:model Post
+php glueful scaffold:model Post --fillable=title,slug,body --soft-deletes
+php glueful scaffold:model Post --table=blog_posts
 ```
 
-## Requests (FormRequest Validation)
+Options: `--fillable`, `--table`, `--soft-deletes` (`-s`), `--timestamps` (`-t`, on by default), `--migration` (`-m`), `--force`.
 
-Generate `FormRequest` classes for declarative request validation:
+`--migration` also writes `database/migrations/NNN_Create<Table>Table.php`, a `hasTable`-guarded `createTable()` with a `dropTableIfExists()` rollback that `migrate:run` picks up.
+
+Models are context-first everywhere: `Post::query($context)`, `Post::find($context, $id)`, `Post::create($context, [...])`, `new Post([...], $context)`.
+
+## Request DTOs (recommended validation)
 
 ```bash
-# Basic form request
-php glueful scaffold:request CreateUserRequest
-
-# Update request
-php glueful scaffold:request UpdateUserRequest
+php glueful scaffold:dto CreatePostData             # RequestData + #[Rule] → app/DTOs
+php glueful scaffold:dto PostData --response        # ResponseData
 ```
 
-> **Note:** For simpler cases, you can also use plain DTO classes with static `rules()` methods
-> as shown in [APPLICATION_ARCHITECTURE.md](APPLICATION_ARCHITECTURE.md#validation-dto-pattern).
+A controller method that type-hints a `RequestData` class gets it hydrated and validated by the router; on failure the client gets a 422 and the method never runs:
+
+```php
+namespace App\DTOs;
+
+use Glueful\Validation\Attributes\Rule;
+use Glueful\Validation\Contracts\RequestData;
+
+final class CreatePostData implements RequestData
+{
+    public function __construct(
+        #[Rule('required|string|max:255')]
+        public readonly string $title,
+
+        #[Rule('required|string|max:255|unique:posts,slug')]
+        public readonly string $slug,
+
+        #[Rule('required|string')]
+        public readonly string $body,
+    ) {}
+}
+```
+
+`unique:` / `exists:` are enforced since 1.91 and need the validator's database connection; the DTO path supplies it. (A hand-built `Validator` needs `new Validator($rules, $context)` — without a context or connection these rules throw `LogicException`.)
+
+## Requests (FormRequest)
+
+```bash
+php glueful scaffold:request CreatePostRequest      # extends Glueful\Validation\FormRequest
+```
+
+A `FormRequest` has `rules()`, `authorize()`, `messages()` and `prepareForValidation()`. Prefer request DTOs for new endpoints; `FormRequest` / `#[Validate]` suit array-style input. `BaseController::validateRequest()` is legacy (only `required`, `email`, `max:N`).
 
 ## Resources (API Transformers)
 
 ```bash
-# Basic JSON resource
-php glueful scaffold:resource UserResource
+php glueful scaffold:resource PostResource                # JsonResource
+php glueful scaffold:resource PostResource --model        # ModelResource (relation/attribute helpers)
+php glueful scaffold:resource PostCollection --collection # ResourceCollection
+```
 
-# Model-aware resource
-php glueful scaffold:resource UserResource --model
+```php
+return PostResource::make($post)->toResponse(201);
 
-# Resource collection
-php glueful scaffold:resource UserCollection --collection
+$page = Post::query($this->context)->paginate(1, 20);
+return PostResource::collection($page['data'])->withPaginationFrom($page)->toResponse();
 ```
 
 ## Jobs (Queue)
 
 ```bash
-# Basic job
-php glueful scaffold:job ProcessPayment
-
-# Job with queue name
+php glueful scaffold:job IndexPost
 php glueful scaffold:job SendNewsletter --queue=emails
-
-# Job with retry settings
-php glueful scaffold:job GenerateReport --tries=3 --backoff=60
-
-# Unique job (prevents duplicates)
+php glueful scaffold:job GenerateReport --tries=3 --backoff=60 --timeout=120
 php glueful scaffold:job SyncInventory --unique
+```
+
+Jobs extend `Glueful\Queue\Job`. Read input with `$this->getData()` and resolve services through `$this->context`:
+
+```php
+public function handle(): void
+{
+    $post = Post::find($this->context, $this->getData()['post_id']);
+    // ...
+}
+```
+
+Dispatch with the class name and a plain array:
+
+```php
+app($this->context, \Glueful\Queue\QueueManager::class)->push(IndexPost::class, ['post_id' => $post->id]);
 ```
 
 ## Events & Listeners
 
 ```bash
-# Create event
-php glueful event:create UserRegistered
-
-# Create event in subdirectory
-php glueful event:create Auth/LoginFailed
-
-# Create event with category
+php glueful event:create PostCreated                 # → App\Events\PostCreatedEvent
+php glueful event:create Auth/LoginFailed            # → App\Events\Auth\LoginFailedEvent
 php glueful event:create SecurityAlert --type=security
+php glueful event:listener PostAudit --event='App\Events\PostCreatedEvent'   # → App\Events\Listeners\PostAuditListener
+php glueful event:listener PostAudit --method=onCreated
+```
 
-# Create listener
-php glueful event:listener SendWelcomeEmail
+The generated event uses the `EventHelpers` trait; the convention is to extend `Glueful\Events\Contracts\BaseEvent` (and call `parent::__construct()`). The generated handler carries `#[AsListener]`; subscribe the class at boot, as the command's hint shows (there is no listener map in `config/events.php`):
 
-# Listener for specific event
-php glueful event:listener SendWelcomeEmail --event=App\\Events\\UserRegisteredEvent
+```php
+use Glueful\Events\Attributes\AsListener;
 
-# Listener with custom method
-php glueful event:listener AuditLogger --method=onUserAction
+final class PostAuditListener
+{
+    #[AsListener(PostCreatedEvent::class)]
+    public function onCreated(PostCreatedEvent $event): void { /* ... */ }
+}
+
+// in a provider extending Glueful\Extensions\ServiceProvider, listed in config/serviceproviders.php
+public function boot(ApplicationContext $context): void
+{
+    app($context, EventService::class)->subscribe(PostAuditListener::class);
+}
+
+// dispatch
+app($this->context, EventService::class)->dispatch(new PostCreatedEvent($post->id));
 ```
 
 ## Middleware
 
 ```bash
-# Basic middleware
-php glueful scaffold:middleware RateLimitMiddleware
+php glueful scaffold:middleware EnsureAdmin          # → App\Http\Middleware\EnsureAdminMiddleware
+php glueful scaffold:middleware Admin/AuditTrail
+```
 
-# Middleware in subdirectory
-php glueful scaffold:middleware Admin/AuthMiddleware
+The class implements `Glueful\Routing\RouteMiddleware`. Register it with an alias, then use the alias on routes:
+
+```php
+// AppServiceProvider::services()
+\App\Http\Middleware\EnsureAdminMiddleware::class => ['autowire' => true, 'alias' => 'admin'],
+
+// routes/api.php
+$router->delete('/posts/{id}', [PostController::class, 'destroy'])->middleware(['auth', 'admin']);
 ```
 
 ## Validation Rules
 
 ```bash
-# Basic rule
-php glueful scaffold:rule UniqueEmail
-
-# Rule with parameters
+php glueful scaffold:rule Slug                                  # → App\Validation\Rules\Slug
 php glueful scaffold:rule PasswordStrength --params=minLength,requireNumbers
+php glueful scaffold:rule RequiredWithoutField --implicit       # runs even when the field is empty
+```
 
-# Implicit rule (runs even when field is empty)
-php glueful scaffold:rule RequiredWithoutField --implicit
+A rule in `App\Validation\Rules` is resolved by name, so `Slug` is usable as `#[Rule('required|slug')]`.
+
+## Query Filters
+
+```bash
+php glueful scaffold:filter PostFilter --filterable=status,author_id --sortable=created_at --searchable=title
 ```
 
 ## Tests
 
 ```bash
-# Unit test
-php glueful scaffold:test UserServiceTest
-
-# Feature/integration test
-php glueful scaffold:test UserApiTest --feature
-
-# Test with specific methods
+php glueful scaffold:test PostServiceTest                       # unit (default) → tests/Unit
+php glueful scaffold:test PostApiTest --feature                 # → tests/Feature
 php glueful scaffold:test PaymentTest --methods=testCharge,testRefund
-
-# Test for specific class
-php glueful scaffold:test UserServiceTest --class=App\\Services\\UserService
+php glueful scaffold:test PostServiceTest --class='App\Services\PostService'
 ```
+
+Unit tests extend `PHPUnit\Framework\TestCase`. Feature tests extend the skeleton's `App\Tests\TestCase`, which boots the app; dispatch requests the way `tests/Feature/WelcomeTest.php` does (`$this->app()->handle(Request::create('/v1/posts', 'GET'))`).
 
 ## Factories & Seeders
 
 ```bash
-# Factory for model
-php glueful scaffold:factory UserFactory
-
-# Database seeder
-php glueful scaffold:seeder UserSeeder
+php glueful scaffold:factory PostFactory --model='App\Models\Post'
+php glueful scaffold:seeder PostSeeder --model='App\Models\Post'
+php glueful db:seed                 # runs App\Database\Seeders\DatabaseSeeder
+php glueful db:seed PostSeeder      # short names resolve under App\Database\Seeders\
 ```
+
+They live under `app/Database/`, so the skeleton's `App\` autoload already covers them. Factories
+also need Faker (`composer require --dev fakerphp/faker`) and the `HasFactory` trait on the model:
+
+```php
+use Glueful\Database\ORM\Concerns\HasFactory;
+use Glueful\Database\ORM\Model;
+
+class Post extends Model
+{
+    use HasFactory;
+    // ...
+}
+
+// in PostSeeder::run()
+Post::factory()->count(10)->create();
+```
+
+Seeders and factories run with the app's context when invoked through `db:seed` or a booted test;
+elsewhere pass one: `Post::factory(10, $context)->create()`.
 
 ## Migrations
 
 ```bash
-# Create migration
-php glueful migrate:create create_users_table
-
-# Run migrations
+php glueful migrate:create create_posts_table   # → database/migrations/NNN_CreatePostsTable.php
 php glueful migrate:run
-
-# Rollback last migration
 php glueful migrate:rollback
-
-# Check status
 php glueful migrate:status
-```
-
----
-
-## Growing Your Application
-
-### From Starter to Standard
-
-When your controllers start getting large, add these directories:
-
-```bash
-# Create standard structure directories
-mkdir -p app/{Actions,DTO,Events,Exceptions,Jobs,Middleware,Policies,Support}
-```
-
-Then generate components:
-
-```bash
-# Extract controller logic to actions
-# (create manually or use this pattern)
-cat > app/Actions/CreateUserAction.php << 'EOF'
-<?php
-
-namespace App\Actions;
-
-use App\Models\User;
-use Glueful\Bootstrap\ApplicationContext;
-
-class CreateUserAction
-{
-    public function __construct(
-        private readonly ApplicationContext $context
-    ) {}
-
-    public function execute(array $data): User
-    {
-        return User::create($data);
-    }
-}
-EOF
-```
-
-### From Standard to Enterprise
-
-```bash
-# Create enterprise structure
-mkdir -p app/DTO/{Requests,Responses}
-mkdir -p app/Events/{Dispatchers,Listeners}
-mkdir -p app/Exceptions/{Domain,Application}
-mkdir -p app/Support/{Constants,Helpers,ValueObjects}
-mkdir -p app/{Repositories,Services,Validators}
 ```
 
 ---
 
 ## Common Patterns
 
-### CRUD Endpoint Setup
+### CRUD endpoint
 
 ```bash
-# 1. Create model with migration
-php glueful scaffold:model Post --migration --fillable=title,body,user_id
-
-# 2. Create resource controller
-php glueful scaffold:controller PostController --api
-
-# 3. Create form requests
-php glueful scaffold:request CreatePostRequest
-php glueful scaffold:request UpdatePostRequest
-
-# 4. Create API resource
-php glueful scaffold:resource PostResource --model
-
-# 5. Run migration
+php glueful migrate:create create_posts_table               # 1. schema (edit, then migrate:run)
+php glueful scaffold:model Post --fillable=title,slug,body  # 2. model → app/Models/Post.php
+php glueful scaffold:dto CreatePostData                     # 3. request DTOs
+php glueful scaffold:dto UpdatePostData
+php glueful scaffold:resource PostResource --model          # 4. output shape
+php glueful scaffold:controller PostController --api        # 5. controller
+# 6. register PostController in AppServiceProvider::services()
+# 7. add routes in routes/api.php (or attributes on the controller)
 php glueful migrate:run
 ```
 
-### Background Job Setup
+### Background job
 
 ```bash
-# 1. Create the job
 php glueful scaffold:job SendWelcomeEmail --queue=emails --tries=3
-
-# 2. Dispatch from controller or action:
-# app($this->context, QueueManager::class)->push(SendWelcomeEmail::class, ['user_id' => $userId]);
-
-# 3. Run queue worker
+# dispatch: app($this->context, QueueManager::class)->push(SendWelcomeEmail::class, ['user_uuid' => $uuid], 'emails');
 php glueful queue:work --queue=emails
 ```
 
-### Event-Driven Feature
+### Event-driven feature
 
 ```bash
-# 1. Create event
-php glueful event:create UserCreated
-
-# Create event in subdirectory (Auth/LoginFailedEvent)
-php glueful event:create Auth/LoginFailed
-
-# Create event with category type
-php glueful event:create SecurityAlert --type=security
-
-# 2. Create listener
-php glueful event:listener SendWelcomeEmail
-
-# Create listener for specific event
-php glueful event:listener SendWelcomeEmail --event=App\\Events\\UserCreatedEvent
-
-# Create listener with custom method name
-php glueful event:listener AuditLogger --method=onUserCreated
+php glueful event:create PostCreated
+php glueful event:listener PostAudit --event='App\Events\PostCreatedEvent' --method=onCreated
+# add #[AsListener(PostCreatedEvent::class)] to onCreated(), subscribe the class in a provider's boot()
 ```
-
-**3. Register in `config/events.php`:**
-
-```php
-// config/events.php
-return [
-    'listeners' => [
-        \App\Events\UserCreatedEvent::class => [
-            \App\Events\Listeners\SendWelcomeEmailListener::class,
-        ],
-    ],
-];
-```
-
-> Events are auto-wired at boot time based on this config. Listeners receive the event via their handler method (default: `handle()`).
 
 ---
 
-## Tips
+## Naming Conventions
 
-1. **Use `--help`** on any command to see all options:
-   ```bash
-   php glueful scaffold:model --help
-   ```
+- Controllers: `PostController`
+- Models: `Post` (singular PascalCase; table defaults to the snake_case plural, `posts`)
+- Migrations: `create_posts_table`
+- Request DTOs: `CreatePostData`; response DTOs: `PostData`
+- Jobs: `SendWelcomeEmail` (no suffix required)
+- Events: `PostCreated` → `PostCreatedEvent`; listeners: `PostAudit` → `PostAuditListener`
+- Middleware: `EnsureAdmin` → `EnsureAdminMiddleware`
 
-2. **Check available commands**:
-   ```bash
-   php glueful list scaffold   # Scaffold commands
-   php glueful list event      # Event commands
-   ```
-
-3. **Dry run** isn't available, but you can preview by examining the command's template logic or checking generated files before committing.
-
-4. **Naming conventions**:
-   - Controllers: `UserController` (singular + Controller)
-   - Models: `User` (singular, PascalCase)
-   - Migrations: `create_users_table` (snake_case, plural table)
-   - Jobs: `SendWelcomeEmail` (verb + noun)
-   - Events: `UserCreated` (noun + past tense verb)
-   - Listeners: `SendWelcomeEmailListener` (action + Listener)
+See [APPLICATION_ARCHITECTURE.md](APPLICATION_ARCHITECTURE.md) for where these pieces fit, and the framework docs (CLI Reference; Essentials → Controllers, Validation, ORM) for details.
