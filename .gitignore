@@ -30,5 +30,7 @@ bootstrap/cache/
 !/storage/cache/.gitkeep
 # Migration and extension-state lock files (created on first migrate:run / extensions:enable)
 /storage/framework/
-/storage/database/*.sqlite
-!/storage/database/glueful.sqlite
+# The SQLite database is created empty by post-create-project-cmd and populated by
+# `glueful install`. Never commit one: a shipped ledger goes stale against the framework.
+/storage/database/*
+!/storage/database/.gitkeep
