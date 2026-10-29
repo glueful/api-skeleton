@@ -84,8 +84,9 @@ return [
     */
     'servers' => [
         [
-            // Use base URL - route paths include their own prefixes
-            'url' => env('API_SERVER_URL', env('APP_URL', 'http://localhost')),
+            // Base URL only; route paths carry their own prefixes. BASE_URL is the app's canonical
+            // address (app.urls.base); API_SERVER_URL overrides it for the docs alone.
+            'url' => env('API_SERVER_URL', env('BASE_URL', env('APP_URL', 'http://localhost'))),
             'description' => env('API_SERVER_DESCRIPTION', 'API Server'),
         ],
     ],

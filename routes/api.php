@@ -1,51 +1,25 @@
 <?php
 
-use Glueful\Routing\Router;
+declare(strict_types=1);
+
 use App\Controllers\WelcomeController;
+use Glueful\Routing\Router;
 
 /**
- * Application API Routes
+ * Application API routes.
  *
- * @var Router $router Router instance injected by RouteManifest::load()
+ * Every *.php file in this directory is loaded by RouteManifest. Document endpoints on the
+ * controller with #[ApiOperation] and #[ApiResponse] (see WelcomeController) and with RequestData
+ * DTOs for input; `php glueful generate:openapi` reflects the live route table. Route docblocks
+ * are no longer read.
  *
- * Route Prefix Options:
- *   - 'v1'                    → /v1/welcome (simple versioning)
- *   - '/api/v1'               → /api/v1/welcome (with api prefix)
- *   - api_prefix($context)    → uses config/api.php versioning settings
- *   - (no group)              → /welcome (no prefix)
+ * Prefix options: 'v1' gives /v1/..., '/api/v1' gives /api/v1/..., api_prefix($context) follows
+ * config/api.php, and no group gives a bare path.
+ *
+ * @var Router $router
  */
-
 $router->group(['prefix' => 'v1'], function (Router $router) {
-    /**
-     * @route GET /status
-     * @summary Status (Lightweight)
-     * @description Lightweight status check for the application skeleton
-     * @tag Status
-     * @response 200 application/json "Service status" {
-     *   success:boolean="true",
-     *   message:string="Success message",
-     *   data:{
-     *     status:string="healthy",
-     *     timestamp:string="ISO 8601 timestamp"
-     *   }
-     * }
-     */
-    $router->get('/status', [WelcomeController::class, 'status']);
+    $router->get('/status', [WelcomeController::class, 'status'])->name('status');
 });
 
- /**
- * @route GET /welcome
- * @summary Welcome Endpoint
- * @description Returns a welcome payload with version and timestamp
- * @tag Example
- * @response 200 application/json "Welcome payload" {
- *   success:boolean="true",
- *   message:string="Success message",
- *   data:{
- *     message:string="Welcome text",
- *     version:string="Application version",
- *     timestamp:string="ISO 8601 timestamp"
- *   }
- * }
- */
-$router->get('/welcome', [WelcomeController::class, 'index']);
+$router->get('/welcome', [WelcomeController::class, 'index'])->name('welcome');
