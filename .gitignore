@@ -1,6 +1,7 @@
 # --- Composer ---
 /vendor/
 # The skeleton is a create-project template; installs resolve fresh dependencies.
+# post-create-project-cmd removes this rule, because an application commits its lock.
 /composer.lock
 /composer.phar
 

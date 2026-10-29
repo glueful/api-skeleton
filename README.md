@@ -130,6 +130,22 @@ class UserController extends BaseController
 }
 ```
 
+### API documentation
+
+`composer docs:openapi` writes `docs/openapi.json` by reflecting the live route table. Document an endpoint on its controller method, not in the route file (route docblocks such as `@route` and `@response` are no longer read):
+
+```php
+use App\DTOs\Responses\WelcomeData;
+use Glueful\Routing\Attributes\ApiOperation;
+use Glueful\Routing\Attributes\ApiResponse;
+
+#[ApiOperation(summary: 'Welcome', description: 'Version and server time.', tags: ['Example'])]
+#[ApiResponse(200, WelcomeData::class, description: 'Welcome payload')]
+public function index(Request $request): Response { }
+```
+
+`WelcomeData` is a small `ResponseData` class in `app/DTOs/Responses/` whose public typed properties become the response schema. A `RequestData` parameter documents the request body or query parameters and the 422 response on its own; `#[ApiResponse(404, description: '...')]` adds error responses; `collection: true` documents a list. The script clears the compiled route cache first: with a stale `storage/cache/routes_*.php` the generator reflects an old router and silently drops routes.
+
 ## Configuration
 
 Key configuration files in `config/`:
@@ -162,7 +178,7 @@ php glueful scaffold:request CreateUserRequest
 # Utilities
 php glueful generate:key             # Generate APP_KEY
 php glueful cache:clear              # Clear cache
-php glueful generate:openapi         # Generate API docs
+composer docs:openapi                # Generate docs/openapi.json (clears the route cache first)
 ```
 
 ## Deploying To Production
